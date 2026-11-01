@@ -1,5 +1,5 @@
 /* HuntX BD — service worker (GitHub Pages / subdirectory safe) */
-const CACHE = 'huntx-shell-v18';
+const CACHE = 'huntx-shell-v20';
 // Relative paths — resolve from SW location (works on /huntxbd/ and root)
 const SHELL = [
   './',
@@ -7,7 +7,10 @@ const SHELL = [
   './styles.css',
   './app.js',
   './logo.png',
-  './manifest.json'
+  './manifest.json',
+  './fx.css',
+  './fx.js',
+  './push.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -78,6 +81,29 @@ self.addEventListener('fetch', (event) => {
           return res;
         })
         .catch(() => cached);
+    })
+  );
+});
+
+/* ---- Push notification display + tap handling (add-on) ---- */
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data && event.data.text() }; }
+  const title = data.title || 'HuntX BD';
+  event.waitUntil(self.registration.showNotification(title, {
+    body: data.body || '',
+    icon: './logo.png',
+    badge: './logo.png',
+    data: { url: './' }
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) { if ('focus' in c) return c.focus(); }
+      return self.clients.openWindow('./');
     })
   );
 });
