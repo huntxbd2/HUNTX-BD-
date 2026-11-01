@@ -1,5 +1,5 @@
 /* HuntX BD — service worker (GitHub Pages / subdirectory safe) */
-const CACHE = 'huntx-shell-v20';
+const CACHE = 'huntx-shell-v21';
 // Relative paths — resolve from SW location (works on /huntxbd/ and root)
 const SHELL = [
   './',
@@ -35,53 +35,31 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
+  const h = url.hostname;
 
-  // Never cache Firebase / Google APIs — always network
+  // Live data / auth — always network, never cached
   if (
-    url.hostname.includes('googleapis') ||
-    url.hostname.includes('firebase') ||
-    url.hostname.includes('gstatic') ||
-    url.hostname.includes('cloudflare')
+    h.includes('firestore') || h.includes('firebaseio') || h.includes('identitytoolkit') ||
+    h.includes('securetoken') || h.includes('firebaseinstallations') || h.includes('firebasestorage') ||
+    (h.includes('googleapis') && !h.startsWith('fonts.'))
   ) {
     return;
   }
 
-  // app.js + styles.css + index.html — NETWORK FIRST so updates show immediately
-  if (
-    url.pathname.endsWith('app.js') ||
-    url.pathname.endsWith('styles.css') ||
-    url.pathname.endsWith('index.html') ||
-    url.pathname.endsWith('/huntxbd/') ||
-    url.pathname.endsWith('/huntxbd')
-  ) {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          if (res.ok && url.origin === self.location.origin) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match(req))
-    );
-    return;
-  }
-
-  // Other shell assets — cache first, then network
+  // Stale-while-revalidate: show instantly from cache, refresh in background.
+  // Great on slow networks; updates appear on the next open.
   event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req)
-        .then((res) => {
-          if (res.ok && url.origin === self.location.origin) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => cached);
-    })
+    caches.open(CACHE).then((cache) =>
+      cache.match(req).then((cached) => {
+        const net = fetch(req)
+          .then((res) => {
+            if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
+            return res;
+          })
+          .catch(() => cached);
+        return cached || net;
+      })
+    )
   );
 });
 
