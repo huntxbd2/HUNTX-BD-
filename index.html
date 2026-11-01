@@ -13,6 +13,7 @@
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="fx.css">
     <!-- Instant theme (no dark→light flash) -->
     <script>
     (function () {
@@ -185,7 +186,7 @@
                     </div>
                     <div class="input-group">
                         <i class="fas fa-envelope"></i>
-                        <input type="email" id="reg-email" placeholder="ইমেইল (Gmail)" required>
+                        <input type="email" id="reg-email" name="email" placeholder="ইমেইল (Gmail)" required autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
                     </div>
                     <div class="input-group">
                         <i class="fas fa-phone"></i>
@@ -733,13 +734,7 @@
     </div>
 
     <script src="app.js"></script>
-    <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-            // Relative path — works on GitHub Pages subdirectory & root
-            navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function () {});
-        });
-    }
-    </script>
+    <script src="fx.js"></script>
+    <script src="push.js"></script>
 </body>
 </html>
