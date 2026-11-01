@@ -10,12 +10,24 @@
     }
     function init() {
         if (document.getElementById('hx-grade')) return;
-        // color grading + aurora + top RGB line
-        var aur = mk('div', 'hx-aurora');
-        aur.innerHTML = '<span class="a1"></span><span class="a2"></span><span class="a3"></span>';
-        document.body.appendChild(aur);
+        // color grading overlay
         document.body.appendChild(mk('div', 'hx-grade'));
-        document.body.appendChild(mk('div', 'hx-rgb-top', 'hx-rgb-line'));
+
+        // speed: lazy-decode images (low network friendly)
+        function tune(root) {
+            var imgs = root.querySelectorAll ? root.querySelectorAll('img:not([data-hx])') : [];
+            for (var i = 0; i < imgs.length; i++) {
+                var im = imgs[i]; im.setAttribute('data-hx', '1');
+                if (!im.hasAttribute('decoding')) im.decoding = 'async';
+                if (!im.hasAttribute('loading') && !im.closest('.app-top-header')) im.loading = 'lazy';
+            }
+        }
+        tune(document);
+        var tq = 0;
+        new MutationObserver(function () {
+            if (tq) return;
+            tq = setTimeout(function () { tq = 0; tune(document); }, 300);
+        }).observe(document.body, { childList: true, subtree: true });
 
         var hue = 0;
         var lastTrail = 0;
@@ -52,7 +64,7 @@
         document.addEventListener('pointermove', function (e) {
             if (e.pointerType === 'mouse' && e.buttons === 0) return;
             var now = Date.now();
-            if (now - lastTrail < 45) return;
+            if (now - lastTrail < 70) return;
             lastTrail = now;
             trail(e.clientX, e.clientY);
         }, { passive: true });
