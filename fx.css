@@ -3,82 +3,35 @@
 
 @property --hx-hue { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
 
-/* ---------- Color grading overlay (no filter => fixed elements stay safe) ---------- */
+/* ---------- Richer color grading (single light overlay, no blur => fast) ---------- */
 #hx-grade {
     position: fixed; inset: 0; z-index: 2; pointer-events: none;
     background:
-        radial-gradient(ellipse 90% 55% at 15% 0%, rgba(26,92,255,0.16), transparent 60%),
-        radial-gradient(ellipse 80% 50% at 100% 10%, rgba(225,6,0,0.13), transparent 60%),
-        radial-gradient(ellipse 90% 60% at 50% 110%, rgba(124,77,255,0.14), transparent 60%);
+        radial-gradient(ellipse 80% 45% at 10% 0%, rgba(26,92,255,0.34), transparent 65%),
+        radial-gradient(ellipse 70% 40% at 100% 8%, rgba(255,20,60,0.28), transparent 65%),
+        radial-gradient(ellipse 90% 45% at 50% 108%, rgba(140,80,255,0.32), transparent 65%),
+        radial-gradient(ellipse 50% 30% at 0% 60%, rgba(0,200,255,0.12), transparent 70%);
     mix-blend-mode: screen;
 }
 #hx-grade::after {
     content: ''; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.10));
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.12));
     mix-blend-mode: soft-light;
 }
-body.light-theme #hx-grade { mix-blend-mode: multiply; opacity: 0.35; }
+body.light-theme #hx-grade { mix-blend-mode: multiply; opacity: 0.4; }
 
-/* ---------- AI aurora (soft moving color orbs) ---------- */
-#hx-aurora { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; opacity: 0.5; }
-#hx-aurora span {
-    position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%;
-    filter: blur(70px); mix-blend-mode: screen; will-change: transform;
-}
-#hx-aurora .a1 { left: -20vmax; top: -22vmax; background: radial-gradient(circle, rgba(26,92,255,0.45), transparent 65%); animation: hxDrift1 16s ease-in-out infinite alternate; }
-#hx-aurora .a2 { right: -22vmax; top: 8vmax; background: radial-gradient(circle, rgba(225,6,0,0.38), transparent 65%); animation: hxDrift2 19s ease-in-out infinite alternate; }
-#hx-aurora .a3 { left: 10vmax; bottom: -30vmax; background: radial-gradient(circle, rgba(124,77,255,0.40), transparent 65%); animation: hxDrift3 22s ease-in-out infinite alternate; }
-@keyframes hxDrift1 { to { transform: translate(18vmax, 14vmax) scale(1.15); } }
-@keyframes hxDrift2 { to { transform: translate(-16vmax, 12vmax) scale(0.9); } }
-@keyframes hxDrift3 { to { transform: translate(14vmax, -12vmax) scale(1.2); } }
-
-/* ---------- RGB light strips ---------- */
-.hx-rgb-line {
-    position: fixed; left: 0; right: 0; height: 2px; z-index: 101; pointer-events: none;
-    background: linear-gradient(90deg, #ff0040, #ff8a00, #ffe600, #00ff9d, #00c8ff, #7c4dff, #ff2d95, #ff0040);
-    background-size: 300% 100%;
-    animation: hxRgbSlide 5s linear infinite;
-    box-shadow: 0 0 10px rgba(255,255,255,0.35), 0 0 22px rgba(124,77,255,0.45);
-}
-#hx-rgb-top { top: 0; }
-@keyframes hxRgbSlide { to { background-position: 300% 0; } }
-
-/* header & bottom nav RGB underglow */
-.app-top-header { position: sticky; }
-.app-top-header::after {
-    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
-    background: linear-gradient(90deg, #ff0040, #ff8a00, #00ff9d, #00c8ff, #7c4dff, #ff2d95, #ff0040);
-    background-size: 300% 100%; animation: hxRgbSlide 6s linear infinite;
-    box-shadow: 0 0 12px rgba(0,200,255,0.45);
-}
-.bottom-nav::before {
-    content: ''; position: absolute; left: 0; right: 0; top: -1px; height: 2px; pointer-events: none;
-    background: linear-gradient(90deg, #7c4dff, #00c8ff, #00ff9d, #ffe600, #ff8a00, #ff0040, #7c4dff);
-    background-size: 300% 100%; animation: hxRgbSlide 7s linear infinite reverse;
-    box-shadow: 0 0 12px rgba(255,45,149,0.45);
-}
-
-/* RGB glow ring on cards / key buttons */
-.category-card, .match-card, .home-support-card, .wallet-hero-card, .admin-mod {
-    position: relative;
-}
+/* ---------- Thin rotating light around cards ---------- */
+.category-card, .match-card, .wallet-hero-card { position: relative; }
 .category-card::after, .match-card::after, .wallet-hero-card::after {
-    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
-    background: conic-gradient(from var(--hx-hue), rgba(255,0,64,0.0), rgba(255,0,64,0.55), rgba(0,200,255,0.55), rgba(124,77,255,0.55), rgba(0,255,157,0.0) 70%, rgba(255,0,64,0.0));
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none;
+    background: conic-gradient(from var(--hx-hue),
+        rgba(255,255,255,0) 0%, rgba(255,255,255,0) 55%,
+        rgba(0,200,255,0.9) 72%, rgba(124,77,255,1) 84%, rgba(255,45,149,0.95) 94%, rgba(255,255,255,0) 100%);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor; mask-composite: exclude;
-    animation: hxHue 6s linear infinite; opacity: 0.75;
+    animation: hxHue 5s linear infinite;
 }
 @keyframes hxHue { to { --hx-hue: 360deg; } }
-
-.btn-join:not(.full), .btn-primary, .btn-wallet-add, .btn-wallet-wd, .home-support-btn, .btn-verify {
-    animation-name: hxBtnGlow; animation-duration: 4s; animation-iteration-count: infinite; animation-timing-function: linear;
-}
-@keyframes hxBtnGlow {
-    0%   { filter: hue-rotate(0deg) saturate(1.08); }
-    50%  { filter: hue-rotate(14deg) saturate(1.25); }
-    100% { filter: hue-rotate(0deg) saturate(1.08); }
-}
 
 /* logo / balance chip pulse */
 .app-top-logo { box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 0 14px rgba(225,6,0,0.55), 0 0 22px rgba(26,92,255,0.45); animation: hxLogoPulse 3s ease-in-out infinite; }
@@ -133,6 +86,5 @@ button, .nav-item, .category-card, .match-card, .menu-item, .tab, .tx-tab, .noti
 .hx-switch input:checked + .hx-knob::after { transform: translateX(20px); }
 
 @media (prefers-reduced-motion: reduce) {
-    #hx-aurora span, .hx-rgb-line, .app-top-header::after, .bottom-nav::before,
     .category-card::after, .match-card::after, .wallet-hero-card::after { animation: none !important; }
 }
