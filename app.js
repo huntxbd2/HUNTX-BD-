@@ -153,8 +153,12 @@ async function initDB() {
         }
         const cachedSlider = JSON.parse(localStorage.getItem('huntx_slider_v1') || 'null');
         if (Array.isArray(cachedSlider)) CACHE.homeSlider = cachedSlider;
+        const cachedOrder = JSON.parse(localStorage.getItem('huntx_order_v1') || 'null');
+        if (Array.isArray(cachedOrder) && cachedOrder.length) CACHE.categoryOrder = cachedOrder;
     } catch (e) {}
 
+    let matchesFresh = false;
+    let earlyOrderPromise = Promise.resolve(undefined);
     let earlyMatchesPromise = Promise.resolve();
     let earlyCatsPromise = Promise.resolve(null);
     let earlySettingsPromise = Promise.resolve(null);
@@ -168,8 +172,15 @@ async function initDB() {
                     ...d.data(),
                     _docId: d.id
                 }));
+                matchesFresh = true;
             }
         }).catch(e => console.warn('early matches', e));
+
+        // categoryOrder in the SAME parallel batch (was a slow extra round-trip later)
+        // undefined = request failed, null = doc does not exist
+        earlyOrderPromise = db.collection('config').doc('categoryOrder').get()
+            .then(s => (s && s.exists) ? (s.data().value !== undefined ? s.data().value : s.data()) : null)
+            .catch(() => undefined);
 
         earlyCatsPromise = db.collection('config').doc('categories').get()
             .then(s => (s && s.exists) ? (s.data().value !== undefined ? s.data().value : s.data()) : null)
@@ -185,17 +196,19 @@ async function initDB() {
     }
 
     // Wait for critical parallel fetches together
-    let [earlyCats, earlySettings, earlySlider] = [null, null, null];
+    let [earlyCats, earlySettings, earlySlider, earlyOrder] = [null, null, null, undefined];
     try {
         const results = await Promise.all([
             earlyMatchesPromise,
             earlyCatsPromise,
             earlySettingsPromise,
-            earlySliderPromise
+            earlySliderPromise,
+            earlyOrderPromise
         ]);
         earlyCats = results[1];
         earlySettings = results[2];
         earlySlider = results[3];
+        earlyOrder = results[4];
     } catch (e) {
         console.warn('parallel boot', e);
         try { await earlyMatchesPromise; } catch (e2) {}
@@ -247,7 +260,8 @@ async function initDB() {
     CACHE.categories = categories;
     try { localStorage.setItem('huntx_cats_v1', JSON.stringify(categories)); } catch (e) {}
     try {
-        if (Array.isArray(CACHE.matches) && CACHE.matches.length) {
+        // Always store fresh result (even empty) so next launch paints the right counts instantly
+        if (matchesFresh && Array.isArray(CACHE.matches)) {
             localStorage.setItem('huntx_matches_v1', JSON.stringify(CACHE.matches.slice(0, 80)));
         }
     } catch (e) {}
@@ -260,7 +274,7 @@ async function initDB() {
 
     // Category display order — respect admin list; do not re-add deleted modes
     const defaultOrder = ['br-match', 'br-survival', 'clash-squad', 'cs-2vs2', 'lone-wolf', 'free-match'];
-    let categoryOrder = await cloudGetConfig('categoryOrder', null);
+    let categoryOrder = (earlyOrder === undefined) ? await cloudGetConfig('categoryOrder', null) : earlyOrder;
     if (!Array.isArray(categoryOrder) || !categoryOrder.length) {
         // First install only — seed order once
         categoryOrder = defaultOrder.filter(k => categories[k]);
@@ -276,6 +290,13 @@ async function initDB() {
         });
     }
     CACHE.categoryOrder = categoryOrder;
+    try { localStorage.setItem('huntx_order_v1', JSON.stringify(categoryOrder)); } catch (e) {}
+
+    // ===== CRITICAL DATA READY (matches + categories + order + settings + slider) =====
+    // Splash can finish now. Everything below (rules, poll, admin check, live listeners)
+    // keeps running in the background and updates the UI live.
+    try { renderPlayCategories(); } catch (e) {}
+    try { if (typeof window.__hxCriticalDone === 'function') window.__hxCriticalDone(); } catch (e) {}
 
     // Mode rules
     let modeRules = await cloudGetConfig('modeRules', null);
@@ -389,7 +410,7 @@ async function initDB() {
         // Live listeners after first paint data is ready
         db.collection('matches').onSnapshot(snap => {
             CACHE.matches = snap.docs.map(d => ({ id: isNaN(d.id) ? d.id : (Number(d.id) || d.id), ...d.data(), _docId: d.id }));
-            try { localStorage.setItem('huntx_matches_v1', JSON.stringify(CACHE.matches.slice(0, 80))); } catch (e) {}
+            try { if (!snap.metadata || !snap.metadata.fromCache) localStorage.setItem('huntx_matches_v1', JSON.stringify(CACHE.matches.slice(0, 80))); } catch (e) {}
             refreshMatchUI();
             try { renderPlayCategories(); } catch (e) {}
         }, err => { console.warn('matches listen', err); });
@@ -1201,6 +1222,7 @@ async function loadMyTransactions() {
 }
 
 function showApp() {
+    try { if (currentUser && currentUser.email && window.hxRememberEmail) window.hxRememberEmail(currentUser.email); } catch (e) {}
     // Lock first — closed site must not open play / entry popup for users
     applyAppLockGate();
     if (isAppClosedForUsers() && !(currentUser && currentUser.isAdmin)) {
@@ -1455,11 +1477,33 @@ function showEntryPopup() {
 
 async function login(username, password) {
     try {
-        // Refresh users
-        CACHE.users = await cloudGetAll('users');
-        const user = CACHE.users.find(u =>
-            u.username.toLowerCase() === username.toLowerCase() && u.password === password
-        );
+        let user = null, nameFound = false;
+        const uname = String(username || '').trim();
+        const match = u => u && u.username && String(u.username).toLowerCase() === uname.toLowerCase();
+        if (firebaseReady) {
+            // FAST PATH: query only this username (few KB) instead of downloading every user
+            const variants = Array.from(new Set([
+                uname, uname.toLowerCase(), uname.toUpperCase(),
+                uname.charAt(0).toUpperCase() + uname.slice(1).toLowerCase()
+            ])).filter(Boolean);
+            const snaps = await Promise.all(variants.map(v =>
+                db.collection('users').where('username', '==', v).limit(5).get().catch(() => null)
+            ));
+            const found = [];
+            snaps.forEach(s => s && s.docs.forEach(d => found.push({ id: isNaN(d.id) ? d.id : (Number(d.id) || d.id), ...d.data(), _docId: d.id })));
+            const named = found.filter(match);
+            nameFound = named.length > 0;
+            user = named.find(u => u.password === password) || null;
+        }
+        if (!user && !nameFound) {
+            // Fallback (odd letter-case or offline): full list like before
+            CACHE.users = await cloudGetAll('users');
+            user = CACHE.users.find(u => match(u) && u.password === password) || null;
+        } else if (user) {
+            CACHE.users = CACHE.users || [];
+            const i = CACHE.users.findIndex(u => String(u.id) === String(user.id));
+            if (i >= 0) CACHE.users[i] = user; else CACHE.users.push(user);
+        }
         if (!user) {
             toast('ইউজারনেম বা পাসওয়ার্ড ভুল!');
             return false;
@@ -1527,6 +1571,25 @@ async function register(username, phone, password, email) {
         toast('রেজিস্ট্রেশন ব্যর্থ। নেট চেক করুন।');
         return false;
     }
+}
+
+/** Small YES / NO dialog (used for logout) */
+function hxAskYesNo(text) {
+    return new Promise(resolve => {
+        const old = document.getElementById('hx-yn');
+        if (old) old.remove();
+        const w = document.createElement('div');
+        w.id = 'hx-yn';
+        w.innerHTML = '<div class="hx-yn-box"><p></p><div class="hx-yn-btns"><button type="button" data-v="0">NO</button><button type="button" data-v="1">YES</button></div></div>';
+        w.querySelector('p').textContent = text;
+        const done = v => { w.remove(); resolve(v); };
+        w.addEventListener('click', e => {
+            if (e.target === w) return done(false);
+            const b = e.target.closest('button[data-v]');
+            if (b) done(b.dataset.v === '1');
+        });
+        document.body.appendChild(w);
+    });
 }
 
 function logout() {
@@ -7784,11 +7847,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         const cachedSlider = JSON.parse(localStorage.getItem('huntx_slider_v1') || 'null');
         if (Array.isArray(cachedSlider)) CACHE.homeSlider = cachedSlider;
+        const cachedOrder0 = JSON.parse(localStorage.getItem('huntx_order_v1') || 'null');
+        if (Array.isArray(cachedOrder0) && cachedOrder0.length) CACHE.categoryOrder = cachedOrder0;
         try { renderPlayCategories(); } catch (e) {}
     } catch (e) {}
+    const hasBootCache = !!(CACHE.categories && Object.keys(CACHE.categories).length);
 
     // ===== Splash: wait for matches + thumbs so home opens with real counts =====
-    const MAX_SPLASH_MS = 4200;
+    const MAX_SPLASH_MS = 4200;                       // progress-bar pace
+    const HARD_SPLASH_MS = hasBootCache ? 3500 : 8000; // never wait longer than this
     const startTime = Date.now();
     _splashPercent = 0;
     updateSplash(5, 'Initializing...');
@@ -7797,7 +7864,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     let dataReady = false;
     let thumbsReady = false;
 
-    try { await checkSession(); } catch (e) { console.warn(e); }
+    // Start loading ALL data first (parallel), session check runs at the same time
+    let _criticalResolve;
+    const criticalPromise = new Promise(r => { _criticalResolve = r; });
+    window.__hxCriticalDone = () => _criticalResolve();
+    const initPromise = (async () => {
+        try {
+            await initDB();
+        } catch (e) {
+            bootError = e;
+            console.warn('initDB', e);
+            try { await initDB(); } catch (e2) {}
+        }
+        _criticalResolve();
+    })();
+    initPromise.catch(() => {});
+    const sessionPromise = (async () => {
+        try { await checkSession(); } catch (e) { console.warn(e); }
+    })();
 
     // Preload category / slider images so they don't pop in after home opens
     const preloadImages = (urls, maxMs) => new Promise(resolve => {
@@ -7820,21 +7904,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const dbPromise = (async () => {
-        try {
-            await initDB();
-        } catch (e) {
-            bootError = e;
-            console.warn('initDB', e);
-            try { await initDB(); } catch (e2) {}
-        }
-        // Preload thumbs + slider images while still on splash
+        await criticalPromise;
+        // Preload thumbs + slider images while still on splash (short: most are browser-cached)
         try {
             const cats = CACHE.categories || {};
             const thumbs = Object.values(cats).map(c => (c && c.thumb) || '').filter(Boolean);
             const slides = (Array.isArray(CACHE.homeSlider) ? CACHE.homeSlider : [])
                 .map(s => (s && (s.image || s.img || s.url)) || '').filter(Boolean);
             updateSplash(Math.max(_splashPercent, 88), 'Loading images...');
-            await preloadImages([...thumbs, ...slides], 2800);
+            await preloadImages([...thumbs, ...slides], 1500);
             // Re-paint categories so cached thumbs show immediately
             try { renderPlayCategories(); } catch (e) {}
         } catch (e) {}
@@ -7850,7 +7928,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         { p: 92, msg: 'Welcome back!' },
         { p: 100, msg: 'Ready!' }
     ];
-    await new Promise(resolve => {
+    const splashPromise = new Promise(resolve => {
         const tick = () => {
             const elapsed = Date.now() - startTime;
             let ratio = Math.min(1, elapsed / MAX_SPLASH_MS);
@@ -7858,7 +7936,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!dataReady && ratio > 0.9) ratio = 0.9;
             if (dataReady && thumbsReady) ratio = Math.max(ratio, 0.97);
             if (dataReady && thumbsReady && elapsed > 600) ratio = 1;
-            if (elapsed >= MAX_SPLASH_MS) ratio = 1;
+            if (elapsed >= HARD_SPLASH_MS) ratio = 1;
 
             const eased = 1 - Math.pow(1 - ratio, 1.45);
             const pct = Math.round(eased * 100);
@@ -7882,6 +7960,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             thumbsReady = true;
         }).catch(() => { dataReady = true; thumbsReady = true; });
     });
+    // Wait for the splash AND the login-session check (both started together)
+    await Promise.all([splashPromise, sessionPromise]);
 
     // Paint home WHILE splash still visible — matches already in CACHE
     try {
@@ -7940,8 +8020,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('#register-form')?.addEventListener('submit', e => {
         e.preventDefault();
         const pass = $('#reg-password').value;
-        const conf = $('#reg-confirm').value;
-        if (pass !== conf) return toast('পাসওয়ার্ড মিলছে না!');
         register(
             $('#reg-username').value.trim(),
             $('#reg-phone').value.trim(),
@@ -8063,7 +8141,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('#menu-rules')?.addEventListener('click', () => navigateTo('rules'));
     $('#menu-topplayers')?.addEventListener('click', () => navigateTo('top-players'));
     $('#menu-admin')?.addEventListener('click', () => navigateTo('admin'));
-    $('#logout-btn')?.addEventListener('click', logout);
+    $('#logout-btn')?.addEventListener('click', () => {
+        hxAskYesNo('Are you sure ?').then(ok => { if (ok) logout(); });
+    });
 
     document.addEventListener('click', e => {
         if (e.target.closest('#copy-ref-btn')) {
@@ -8233,3 +8313,133 @@ window.adminDeleteMatchResult = adminDeleteMatchResult;
 window.renderAdminResultDist = renderAdminResultDist;
 
 window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
+
+
+// ==================== EMAIL PICKER (registration) ====================
+// Websites cannot read the phone's Google accounts (only native apps can).
+// This gives the same flow: tap email -> choose from list -> OK -> it fills in.
+// List = emails already used on THIS device + quick "@gmail.com" completion.
+(function () {
+    const KEY = 'huntx_known_emails';
+    const readList = () => {
+        try {
+            const a = JSON.parse(localStorage.getItem(KEY) || '[]');
+            return Array.isArray(a) ? a.filter(x => typeof x === 'string' && x.includes('@')) : [];
+        } catch (e) { return []; }
+    };
+    window.hxRememberEmail = function (email) {
+        try {
+            const e = String(email || '').trim().toLowerCase();
+            if (!e || !e.includes('@')) return;
+            const list = readList().filter(x => x !== e);
+            list.unshift(e);
+            localStorage.setItem(KEY, JSON.stringify(list.slice(0, 8)));
+        } catch (err) {}
+    };
+
+    function closeSheet() {
+        const o = document.getElementById('email-picker');
+        if (o) o.remove();
+    }
+
+    function openSheet(input) {
+        const list = readList();
+        if (!list.length || document.getElementById('email-picker')) return false;
+        let selected = null;
+        const o = document.createElement('div');
+        o.id = 'email-picker';
+        o.className = 'email-picker-overlay';
+        const rows = list.map((e, i) => `
+            <label class="ep-row"><input type="radio" name="ep" value="${i}"><span class="ep-radio"></span><span class="ep-mail"></span></label>`).join('');
+        o.innerHTML = `
+            <div class="ep-sheet" role="dialog" aria-modal="true">
+                <div class="ep-title">ইমেইল সিলেক্ট করুন</div>
+                <div class="ep-list">
+                    ${rows}
+                    <label class="ep-row"><input type="radio" name="ep" value="new"><span class="ep-radio"></span><span class="ep-mail ep-add">অন্য ইমেইল লিখুন</span></label>
+                </div>
+                <div class="ep-actions">
+                    <button type="button" class="ep-cancel">CANCEL</button>
+                    <button type="button" class="ep-ok" disabled>OK</button>
+                </div>
+            </div>`;
+        document.body.appendChild(o);
+        o.querySelectorAll('.ep-mail').forEach((el, i) => { if (i < list.length) el.textContent = list[i]; });
+        const ok = o.querySelector('.ep-ok');
+        o.querySelectorAll('input[name="ep"]').forEach(r => r.addEventListener('change', () => {
+            selected = r.value; ok.disabled = false;
+        }));
+        o.querySelector('.ep-cancel').addEventListener('click', () => { input.dataset.picked = '1'; closeSheet(); input.focus(); });
+        o.addEventListener('click', ev => { if (ev.target === o) { input.dataset.picked = '1'; closeSheet(); } });
+        ok.addEventListener('click', () => {
+            if (selected === null) return;
+            closeSheet();
+            if (selected === 'new') { input.dataset.picked = '1'; input.focus(); return; }
+            input.value = list[Number(selected)] || '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dataset.picked = '1';
+            const next = document.getElementById('reg-phone');
+            if (next) next.focus();
+        });
+        return true;
+    }
+
+    // ---- Native Android bridge (only exists inside the APK) ----
+    // APK must expose: window.HuntXNative.pickGoogleAccount()
+    // and later call: window.onHuntXAccountPicked("name@gmail.com")  (or "" if cancelled)
+    function hasNativePicker() {
+        try { return !!(window.HuntXNative && typeof window.HuntXNative.pickGoogleAccount === 'function'); }
+        catch (e) { return false; }
+    }
+    window.onHuntXAccountPicked = function (email) {
+        const input = document.getElementById('reg-email');
+        if (!input) return;
+        const e = String(email || '').trim();
+        input.dataset.picked = '1';
+        if (!e) { input.focus(); return; }   // cancelled / "Add account" -> let user type
+        input.value = e;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        try { window.hxRememberEmail(e); } catch (err) {}
+        const next = document.getElementById('reg-phone');
+        if (next) next.focus();
+    };
+
+    function init() {
+        const input = document.getElementById('reg-email');
+        if (!input || input.dataset.epBound) return;
+        input.dataset.epBound = '1';
+
+        // quick "@gmail.com" chip while typing the name part
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'email-domain-chip hidden';
+        input.closest('.input-group').insertAdjacentElement('afterend', chip);
+        const updateChip = () => {
+            const v = input.value.trim();
+            if (v && !v.includes('@')) { chip.textContent = v + '@gmail.com'; chip.classList.remove('hidden'); }
+            else chip.classList.add('hidden');
+        };
+        input.addEventListener('input', updateChip);
+        chip.addEventListener('click', () => {
+            input.value = chip.textContent;
+            chip.classList.add('hidden');
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            const next = document.getElementById('reg-phone');
+            if (next) next.focus();
+        });
+
+        // tap on empty email -> chooser (only if this device has known emails)
+        input.addEventListener('focus', () => {
+            if (input.value.trim() || input.dataset.picked) return;
+            if (hasNativePicker()) {
+                input.blur();
+                try { window.HuntXNative.pickGoogleAccount(); }
+                catch (e) { input.dataset.picked = '1'; input.focus(); }
+                return;
+            }
+            if (openSheet(input)) input.blur();
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();

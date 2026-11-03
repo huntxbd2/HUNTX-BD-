@@ -88,3 +88,18 @@ button, .nav-item, .category-card, .match-card, .menu-item, .tab, .tx-tab, .noti
 @media (prefers-reduced-motion: reduce) {
     .category-card::after, .match-card::after, .wallet-hero-card::after { animation: none !important; }
 }
+
+/* ---------- Full-width on phones (remove side gaps) ---------- */
+@media (max-width: 700px) {
+    body { max-width: none; }
+    .bottom-nav { max-width: none; }
+}
+
+/* ---------- YES / NO dialog ---------- */
+#hx-yn { position: fixed; inset: 0; z-index: 100002; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#hx-yn .hx-yn-box { width: 100%; max-width: 320px; background: #161b2e; color: #e8ecf8; border: 1px solid rgba(124,77,255,0.4); border-radius: 16px; padding: 20px 20px 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 24px rgba(124,77,255,0.25); animation: hxPop 0.18s ease-out; }
+#hx-yn p { font-size: 16px; font-weight: 600; margin-bottom: 18px; }
+#hx-yn .hx-yn-btns { display: flex; justify-content: flex-end; gap: 8px; }
+#hx-yn button { border: 0; background: transparent; color: #8fa8ff; font-weight: 700; font-size: 14px; letter-spacing: 1px; padding: 10px 16px; border-radius: 10px; cursor: pointer; }
+#hx-yn button[data-v="1"] { background: linear-gradient(135deg, #e10600, #7c4dff); color: #fff; }
+@keyframes hxPop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
