@@ -4398,3 +4398,366 @@ body.light-theme .progress-info span {
     color: #5c6578 !important;
 }
 
+
+/* =====================================================================
+   PREMIUM THEME  (colors + buttons)  — appended override layer
+   Each button color follows its meaning:
+   Join = crimson · Room = royal blue · Prize = gold · Add money = violet
+   Withdraw = emerald · Primary = blue/indigo · Full = graphite
+   ===================================================================== */
+:root {
+    --gold: #f5c451;
+    --gold-soft: #ffe29a;
+    --grad-red: linear-gradient(135deg, #ff3b4a 0%, #e10600 48%, #8f0010 100%);
+    --grad-blue: linear-gradient(135deg, #3d86ff 0%, #1a5cff 50%, #1236b8 100%);
+    --grad-gold: linear-gradient(135deg, #ffe29a 0%, #f5c451 48%, #c98a12 100%);
+    --grad-green: linear-gradient(135deg, #2be39a 0%, #00b36b 52%, #007a4a 100%);
+    --grad-violet: linear-gradient(135deg, #8a6cff 0%, #6a4dff 50%, #3f2bd0 100%);
+    --surface-premium: linear-gradient(160deg, rgba(28,33,52,0.96) 0%, rgba(16,19,31,0.98) 100%);
+    --hairline: rgba(255,255,255,0.07);
+    --inner-light: inset 0 1px 0 rgba(255,255,255,0.10);
+}
+
+/* ---- Base background: deeper, calmer ---- */
+body:not(.light-theme) {
+    background-color: #07090f;
+    background-image:
+        radial-gradient(ellipse 120% 70% at 8% -10%, rgba(26,92,255,0.20), transparent 55%),
+        radial-gradient(ellipse 100% 60% at 100% 0%, rgba(225,6,0,0.16), transparent 50%),
+        radial-gradient(ellipse 90% 50% at 50% 110%, rgba(245,196,81,0.06), transparent 55%);
+}
+
+/* ---- Cards: glass + hairline + soft depth ---- */
+body:not(.light-theme) .category-card,
+body:not(.light-theme) .match-card,
+body:not(.light-theme) .auth-card,
+body:not(.light-theme) .wallet-quick-card {
+    background: var(--surface-premium) !important;
+    border: 1px solid var(--hairline) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.42), var(--inner-light) !important;
+}
+body:not(.light-theme) .category-card:active,
+body:not(.light-theme) .match-card:active {
+    transform: scale(0.985);
+    border-color: rgba(245,196,81,0.28) !important;
+}
+.category-card .cat-img { box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset; }
+.category-card .cat-info h3 { letter-spacing: 0.2px; }
+
+/* ---- Inputs ---- */
+body:not(.light-theme) .input-group input {
+    background: rgba(255,255,255,0.045) !important;
+    border: 1px solid rgba(255,255,255,0.09) !important;
+}
+body:not(.light-theme) .input-group input:focus {
+    border-color: rgba(245,196,81,0.65) !important;
+    box-shadow: 0 0 0 3px rgba(245,196,81,0.14) !important;
+}
+
+/* ---- JOIN = crimson ---- */
+.btn-join:not(.full) {
+    background: var(--grad-red) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+    box-shadow: 0 6px 18px rgba(225,6,0,0.38), var(--inner-light) !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+    letter-spacing: 0.3px;
+}
+.btn-join.full {
+    background: linear-gradient(135deg, #4b5260, #2f3541) !important;
+    color: #aab1c0 !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    box-shadow: none !important;
+}
+
+/* ---- ROOM DETAILS = royal blue ---- */
+body:not(.light-theme) .btn-room {
+    background: linear-gradient(180deg, rgba(61,134,255,0.24), rgba(26,92,255,0.08)) !important;
+    border: 1px solid rgba(110,165,255,0.55) !important;
+    color: #a9ccff !important;
+    box-shadow: var(--inner-light);
+}
+body:not(.light-theme) .btn-room i { color: #7eb0ff !important; }
+
+/* ---- PRIZE DETAILS = gold ---- */
+body:not(.light-theme) .btn-prize {
+    background: linear-gradient(180deg, rgba(245,196,81,0.22), rgba(201,138,18,0.07)) !important;
+    border: 1px solid rgba(245,196,81,0.55) !important;
+    color: #ffdf94 !important;
+    box-shadow: var(--inner-light);
+}
+body:not(.light-theme) .btn-prize i { color: var(--gold) !important; }
+
+/* ---- PRIMARY (login / register / submit) = blue-indigo, green variant ---- */
+.btn-primary {
+    background: var(--grad-blue) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+    box-shadow: 0 8px 22px rgba(26,92,255,0.38), var(--inner-light) !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.btn-primary.green {
+    background: var(--grad-green) !important;
+    box-shadow: 0 8px 22px rgba(0,179,107,0.35), var(--inner-light) !important;
+}
+
+/* ---- WALLET: add = violet, withdraw = emerald ---- */
+.btn-wallet-add {
+    background: var(--grad-violet) !important;
+    box-shadow: 0 8px 20px rgba(106,77,255,0.38), var(--inner-light) !important;
+}
+.btn-wallet-wd {
+    background: var(--grad-green) !important;
+    box-shadow: 0 8px 20px rgba(0,179,107,0.34), var(--inner-light) !important;
+}
+.btn-wallet-add, .btn-wallet-wd { border: 1px solid rgba(255,255,255,0.14) !important; }
+
+/* ---- Verify / copy / logout / small ---- */
+.btn-verify {
+    background: var(--grad-blue) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+    box-shadow: 0 5px 14px rgba(26,92,255,0.32) !important;
+}
+.btn-copy {
+    background: linear-gradient(180deg, rgba(245,196,81,0.22), rgba(201,138,18,0.08)) !important;
+    border: 1px solid rgba(245,196,81,0.5) !important;
+    color: #ffdf94 !important;
+}
+body:not(.light-theme) .btn-logout {
+    background: linear-gradient(180deg, rgba(255,59,74,0.20), rgba(143,0,16,0.10)) !important;
+    border: 1px solid rgba(255,59,74,0.5) !important;
+    color: #ff8f99 !important;
+}
+body:not(.light-theme) .btn-action {
+    background: var(--surface-premium) !important;
+    border: 1px solid rgba(245,196,81,0.22) !important;
+    box-shadow: var(--inner-light);
+}
+body:not(.light-theme) .btn-action i { color: var(--gold) !important; }
+
+/* ---- Bottom navigation: glass + gold glow on active ---- */
+body:not(.light-theme) .bottom-nav {
+    background: linear-gradient(180deg, rgba(20,24,38,0.92), rgba(9,11,18,0.97)) !important;
+    border: 1px solid var(--hairline) !important;
+    box-shadow: 0 -6px 28px rgba(0,0,0,0.5), var(--inner-light) !important;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+}
+body:not(.light-theme) .nav-item.active { color: var(--gold-soft) !important; }
+body:not(.light-theme) .nav-item.active i {
+    color: var(--gold) !important;
+    filter: drop-shadow(0 0 8px rgba(245,196,81,0.55));
+}
+
+/* ---- Balance chip ---- */
+.nav-balance, .balance-chip, #nav-balance-chip {
+    border: 1px solid rgba(245,196,81,0.4) !important;
+    background: linear-gradient(180deg, rgba(245,196,81,0.14), rgba(245,196,81,0.04)) !important;
+    box-shadow: var(--inner-light);
+}
+#nav-balance-text { color: var(--gold-soft) !important; font-weight: 800; }
+
+/* ---- Progress bar + timer ---- */
+.progress-fill { background: linear-gradient(90deg, #3d86ff, #f5c451 55%, #ff3b4a) !important; }
+.match-timer { background: linear-gradient(90deg, #1a5cff, #6a4dff 50%, #e10600) !important; }
+
+/* ---- Modal ---- */
+body:not(.light-theme) .modal-content {
+    background: var(--surface-premium) !important;
+    border: 1px solid rgba(245,196,81,0.18) !important;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), var(--inner-light) !important;
+}
+
+/* ---- Telegram bar keeps blue→red, adds premium edge ---- */
+.home-telegram-bar { box-shadow: 0 8px 24px rgba(26,92,255,0.28), var(--inner-light); }
+
+/* ---- Email picker (registration) ---- */
+.email-domain-chip {
+    display: inline-block;
+    margin: -4px 0 10px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(245,196,81,0.5);
+    background: linear-gradient(180deg, rgba(245,196,81,0.2), rgba(245,196,81,0.06));
+    color: #ffdf94;
+    font-size: 13px; font-weight: 600; line-height: 1;
+    font-family: inherit;
+    cursor: pointer;
+}
+.email-domain-chip.hidden { display: none !important; }
+.email-picker-overlay {
+    position: fixed; inset: 0; z-index: 100000;
+    background: rgba(0,0,0,0.62);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.ep-sheet {
+    width: 100%; max-width: 360px; max-height: 80vh;
+    display: flex; flex-direction: column;
+    background: linear-gradient(160deg, #1c2134, #111522);
+    border: 1px solid rgba(245,196,81,0.22);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+    color: #f0f2f8;
+    overflow: hidden;
+}
+.ep-title { padding: 18px 20px 10px; font-size: 16px; font-weight: 700; }
+.ep-list { overflow-y: auto; padding: 4px 8px; }
+.ep-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 12px; border-radius: 12px; cursor: pointer;
+}
+.ep-row:active { background: rgba(255,255,255,0.06); }
+.ep-row input { position: absolute; opacity: 0; pointer-events: none; }
+.ep-radio {
+    flex: 0 0 20px; width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid #8b93a7; position: relative;
+}
+.ep-row input:checked + .ep-radio { border-color: #f5c451; }
+.ep-row input:checked + .ep-radio::after {
+    content: ''; position: absolute; inset: 3px; border-radius: 50%; background: #f5c451;
+}
+.ep-mail { font-size: 14px; word-break: break-all; }
+.ep-add { color: #7eb0ff; }
+.ep-actions { display: flex; justify-content: flex-end; gap: 6px; padding: 10px 14px 14px; }
+.ep-actions button {
+    border: none; background: transparent; font-size: 13px; font-weight: 700; line-height: 1; font-family: inherit;
+    letter-spacing: 0.6px; padding: 11px 16px; border-radius: 10px; cursor: pointer; color: #7eb0ff;
+}
+.ep-actions .ep-ok { background: var(--grad-gold); color: #3a2a00; }
+.ep-actions .ep-ok:disabled { background: rgba(255,255,255,0.08); color: #6b7387; cursor: default; }
+
+
+/* ===== fx.css (merged) ===== */
+/* HuntX BD — FX layer (RGB lights, color grading, click/touch animations)
+   Pure add-on. Does not modify any existing rule. */
+
+@property --hx-hue { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+/* ---------- Richer color grading (single light overlay, no blur => fast) ---------- */
+#hx-grade {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: var(--hx-grade-op, 1);
+    background:
+        radial-gradient(ellipse 80% 45% at 10% 0%, rgba(26,92,255,0.34), transparent 65%),
+        radial-gradient(ellipse 70% 40% at 100% 8%, rgba(255,20,60,0.28), transparent 65%),
+        radial-gradient(ellipse 90% 45% at 50% 108%, rgba(140,80,255,0.32), transparent 65%),
+        radial-gradient(ellipse 50% 30% at 0% 60%, rgba(0,200,255,0.12), transparent 70%);
+    mix-blend-mode: screen;
+}
+#hx-grade::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.12));
+    mix-blend-mode: soft-light;
+}
+body.light-theme #hx-grade { mix-blend-mode: multiply; opacity: calc(0.4 * var(--hx-grade-op, 1)); }
+
+/* ---------- Thin rotating light around cards ---------- */
+.category-card, .match-card, .wallet-hero-card { position: relative; }
+.category-card::after, .match-card::after, .wallet-hero-card::after {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: var(--hx-thick, 1.5px); pointer-events: none;
+    background: conic-gradient(from var(--hx-hue),
+        rgba(255,255,255,0) 0%, rgba(255,255,255,0) 55%,
+        var(--hx-c1, #00c8ff) 72%, var(--hx-c2, #7c4dff) 84%, var(--hx-c3, #ff2d95) 94%, rgba(255,255,255,0) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: hxHue var(--hx-spd, 5s) linear infinite;
+}
+@keyframes hxHue { to { --hx-hue: 360deg; } }
+
+/* logo / balance chip pulse */
+.app-top-logo { box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 0 14px rgba(225,6,0,0.55), 0 0 22px rgba(26,92,255,0.45); animation: hxLogoPulse 3s ease-in-out infinite; }
+@keyframes hxLogoPulse { 50% { box-shadow: 0 0 0 1px rgba(255,255,255,0.2), 0 0 20px rgba(26,92,255,0.7), 0 0 30px rgba(225,6,0,0.55); } }
+.app-top-bell-badge { animation: hxBadge 1.6s ease-in-out infinite; }
+@keyframes hxBadge { 50% { transform: scale(1.18); } }
+
+/* ---------- Touch / press feedback ---------- */
+button, .nav-item, .category-card, .match-card, .menu-item, .tab, .tx-tab, .notif-card, .admin-mod,
+.wallet-learn-item, .wallet-quick-card, .home-support-card, .dep-tab, .notif-filter, .notif-tab {
+    transition: transform 0.16s cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 0.2s ease, filter 0.2s ease;
+    touch-action: manipulation;
+}
+.hx-press { transform: scale(0.955) !important; filter: brightness(1.18) saturate(1.2); }
+.nav-item.hx-press i { transform: translateY(-3px) scale(1.25); }
+.nav-item i { transition: transform 0.22s cubic-bezier(0.34, 1.6, 0.64, 1); }
+
+/* ---------- Touch trail (finger glow) ---------- */
+.hx-trail {
+    position: fixed; z-index: 100000; pointer-events: none; border-radius: 50%;
+    width: 16px; height: 16px; margin: -8px 0 0 -8px;
+    animation: hxTrail 0.55s ease-out forwards;
+}
+@keyframes hxTrail { from { transform: scale(1); opacity: 0.85; } to { transform: scale(0.1); opacity: 0; } }
+
+/* ---------- Push notification UI ---------- */
+.hx-push-card {
+    margin: 12px 14px; padding: 14px 16px; border-radius: 16px;
+    background: linear-gradient(145deg, rgba(124,77,255,0.18), rgba(26,92,255,0.10));
+    border: 1px solid rgba(124,77,255,0.35); color: #e8ecf8;
+    display: flex; align-items: center; gap: 12px;
+}
+.hx-push-card i.hx-ic { font-size: 22px; color: #a78bfa; }
+.hx-push-card .hx-push-txt { flex: 1; min-width: 0; }
+.hx-push-card .hx-push-txt strong { display: block; font-size: 14px; }
+.hx-push-card .hx-push-txt span { font-size: 11px; color: #8b93a7; }
+.hx-switch { position: relative; width: 48px; height: 28px; flex-shrink: 0; }
+.hx-switch input { opacity: 0; width: 0; height: 0; }
+.hx-switch .hx-knob { position: absolute; inset: 0; border-radius: 28px; background: rgba(255,255,255,0.14); transition: background 0.25s; cursor: pointer; }
+.hx-switch .hx-knob::after { content: ''; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform 0.25s cubic-bezier(0.34,1.5,0.64,1); }
+.hx-switch input:checked + .hx-knob { background: linear-gradient(135deg, #7c4dff, #1a5cff); box-shadow: 0 0 14px rgba(124,77,255,0.6); }
+.hx-switch input:checked + .hx-knob::after { transform: translateX(20px); }
+
+@media (prefers-reduced-motion: reduce) {
+    .category-card::after, .match-card::after, .wallet-hero-card::after { animation: none !important; }
+}
+
+/* ---------- Full-width on phones (remove side gaps) ---------- */
+@media (max-width: 700px) {
+    body { max-width: none; }
+    .bottom-nav { max-width: none; }
+}
+
+/* ---------- YES / NO dialog ---------- */
+#hx-yn { position: fixed; inset: 0; z-index: 100002; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#hx-yn .hx-yn-box { width: 100%; max-width: 320px; background: #161b2e; color: #e8ecf8; border: 1px solid rgba(124,77,255,0.4); border-radius: 16px; padding: 20px 20px 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 24px rgba(124,77,255,0.25); animation: hxPop 0.18s ease-out; }
+#hx-yn p { font-size: 16px; font-weight: 600; margin-bottom: 18px; }
+#hx-yn .hx-yn-btns { display: flex; justify-content: flex-end; gap: 8px; }
+#hx-yn button { border: 0; background: transparent; color: #8fa8ff; font-weight: 700; font-size: 14px; letter-spacing: 1px; padding: 10px 16px; border-radius: 10px; cursor: pointer; }
+#hx-yn button[data-v="1"] { background: linear-gradient(135deg, #e10600, #7c4dff); color: #fff; }
+@keyframes hxPop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ---------- Admin-controlled switches (App Design) ---------- */
+body.hx-no-card-light .category-card::after, body.hx-no-card-light .match-card::after, body.hx-no-card-light .wallet-hero-card::after { display: none; }
+body.hx-no-logo-glow .app-top-logo { animation: none; box-shadow: none; }
+body.hx-no-grade #hx-grade { display: none; }
+body.hx-no-press .hx-press { transform: none !important; filter: none; }
+
+body.hx-l-top::before {
+    content: ''; position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 101; pointer-events: none;
+    background: linear-gradient(90deg, var(--hx-c1,#00c8ff), var(--hx-c2,#7c4dff), var(--hx-c3,#ff2d95), var(--hx-c1,#00c8ff));
+    background-size: 300% 100%; animation: hxRgbSlide var(--hx-spd, 5s) linear infinite;
+}
+body.hx-l-header .app-top-header::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
+    background: linear-gradient(90deg, var(--hx-c1,#00c8ff), var(--hx-c2,#7c4dff), var(--hx-c3,#ff2d95), var(--hx-c1,#00c8ff));
+    background-size: 300% 100%; animation: hxRgbSlide var(--hx-spd, 5s) linear infinite;
+}
+body.hx-l-nav .bottom-nav::before {
+    content: ''; position: absolute; left: 0; right: 0; top: -1px; height: 2px; pointer-events: none;
+    background: linear-gradient(90deg, var(--hx-c3,#ff2d95), var(--hx-c2,#7c4dff), var(--hx-c1,#00c8ff), var(--hx-c3,#ff2d95));
+    background-size: 300% 100%; animation: hxRgbSlide var(--hx-spd, 5s) linear infinite reverse;
+}
+@keyframes hxRgbSlide { to { background-position: 300% 0; } }
+body.hx-l-btn .btn-primary, body.hx-l-btn .btn-join:not(.full), body.hx-l-btn .btn-wallet-add, body.hx-l-btn .btn-wallet-wd, body.hx-l-btn .home-support-btn {
+    animation: hxBtnGlow 4s linear infinite;
+}
+@keyframes hxBtnGlow { 50% { filter: hue-rotate(18deg) saturate(1.25); } }
+
+/* ---------- Add Money: method picker ---------- */
+.hx-dep-picker { padding: 6px 14px 14px; }
+.hx-dep-picker h3 { font-size: 14px; margin: 8px 2px 12px; color: var(--text, #f0f2f8); }
+.hx-dep-opt { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; margin-bottom: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); background: var(--card, #141824); color: var(--text, #f0f2f8); font-family: inherit; text-align: left; cursor: pointer; }
+.hx-dep-ic { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 18px; flex-shrink: 0; }
+.hx-dep-tx { flex: 1; display: flex; flex-direction: column; }
+.hx-dep-tx strong { font-size: 15px; }
+.hx-dep-tx small { font-size: 11px; color: var(--text-light, #8b93a7); }
+.hx-dep-opt > i { color: var(--text-light, #8b93a7); font-size: 12px; }
+.hx-dep-change { display: block; margin: 4px 14px 8px auto; background: none; border: 0; color: #ff6b6b; font-size: 12px; font-family: inherit; cursor: pointer; }
