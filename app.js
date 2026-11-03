@@ -3694,30 +3694,27 @@ function getPaymentInfo(method) {
 }
 
 /** Add Money: pick payment method first, then show the TrxID form */
+const HX_PAY_LOGOS = {
+    bKash: 'data:image/jpeg;base64,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',
+    Nagad: 'data:image/jpeg;base64,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'
+};
 function hxDepositPicker(showPicker) {
     const page = document.getElementById('deposit-page');
     if (!page) return;
     const tabs = page.querySelector('.deposit-method-tabs');
     const box = document.getElementById('deposit-method-box');
     let pick = document.getElementById('deposit-picker');
+    const settings = CACHE.settings || {};
+    const pays = settings.payments || {};
+    const tut = String(settings.tutorialAddMoney || '').trim();
     if (!pick) {
         pick = document.createElement('div');
         pick.id = 'deposit-picker';
         pick.className = 'hx-dep-picker';
-        const settings = CACHE.settings || {};
-        const pays = settings.payments || {};
-        const list = [
-            { k: 'bKash', n: 'বিকাশ', c: '#e2136e', s: 'সেন্ড মানি অথবা পেমেন্ট' },
-            { k: 'Nagad', n: 'নগদ', c: '#f7941d', s: 'সেন্ড মানি' }
-        ];
-        if (pays.Rocket && pays.Rocket.number) list.push({ k: 'Rocket', n: 'রকেট', c: '#8c3494', s: 'সেন্ড মানি' });
-        pick.innerHTML = '<h3>পেমেন্টের মাধ্যম নির্বাচন করুন</h3>' + list.map(m =>
-            '<button type="button" class="hx-dep-opt" data-pm="' + m.k + '">' +
-            '<span class="hx-dep-ic" style="background:' + m.c + '">' + m.k.charAt(0) + '</span>' +
-            '<span class="hx-dep-tx"><strong>' + m.n + '</strong><small>' + m.s + '</small></span>' +
-            '<i class="fas fa-chevron-right"></i></button>').join('');
         page.insertBefore(pick, tabs || box);
         pick.addEventListener('click', e => {
+            const v = e.target.closest('.hx-dep-video');
+            if (v) { const u = String((CACHE.settings || {}).tutorialAddMoney || '').trim(); if (u) openExternalLink(u); return; }
             const b = e.target.closest('[data-pm]');
             if (!b) return;
             currentDepositMethod = b.dataset.pm;
@@ -3734,6 +3731,17 @@ function hxDepositPicker(showPicker) {
         chg.addEventListener('click', () => hxDepositPicker(true));
         page.insertBefore(chg, box);
     }
+    const list = [
+        { k: 'bKash', n: 'বিকাশ', s: 'সেন্ড মানি অথবা পেমেন্ট', img: HX_PAY_LOGOS.bKash },
+        { k: 'Nagad', n: 'নগদ', s: '', img: HX_PAY_LOGOS.Nagad }
+    ];
+    if (pays.Rocket && pays.Rocket.number) list.push({ k: 'Rocket', n: 'রকেট', s: '', img: '', c: '#8c3494' });
+    pick.innerHTML = '<h3>পেমেন্টের মাধ্যম নির্বাচন করুন</h3>' + list.map(m =>
+        '<button type="button" class="hx-dep-opt" data-pm="' + m.k + '">' +
+        (m.img ? '<img class="hx-dep-ic" src="' + m.img + '" alt="">' : '<span class="hx-dep-ic hx-dep-txt" style="background:' + m.c + '">R</span>') +
+        '<span class="hx-dep-tx"><strong>' + m.n + '</strong>' + (m.s ? '<small>' + m.s + '</small>' : '') + '</span>' +
+        '<i class="fas fa-chevron-right"></i></button>').join('') +
+        (tut ? '<button type="button" class="hx-dep-video">কিভাবে টাকা অ্যাড করবেন ভিডিওটি দেখুন</button>' : '');
     pick.classList.toggle('hidden', !showPicker);
     if (tabs) tabs.classList.add('hidden');
     if (box) box.classList.toggle('hidden', showPicker);
@@ -8598,26 +8606,59 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     var LS = 'hx_design_v1';
     var DEF = {
         rgb:   { card: true, c1: '#00c8ff', c2: '#7c4dff', c3: '#ff2d95', speed: 5, thick: 1.5, logo: true, header: false, nav: false, top: false, btn: false },
-        grade: { on: true, level: 100 },
+        grade: { on: false, level: 100 },
         touch: { trail: true, press: true },
         colors: {},
         vars: {}
     };
     var TARGETS = [
-        { k: 'primaryBtn', t: 'Primary Buttons (Register, Join, Support…)', sel: '.btn-primary, .btn-join:not(.full), .btn-verify, .home-support-btn', text: true, d: ['#1a5cff', '#5b4cdb'] },
-        { k: 'walletAdd', t: 'Wallet — Add Money Button', sel: '.btn-wallet-add', text: true, d: ['#00b894', '#00d68f'] },
-        { k: 'walletWd', t: 'Wallet — Withdraw Button', sel: '.btn-wallet-wd', text: true, d: ['#e10600', '#ff6b6b'] },
-        { k: 'logout', t: 'Logout Button', sel: '.btn-logout', text: true, d: ['#1a5cff', '#3d6ef5'] },
-        { k: 'telegram', t: 'Telegram Bar', sel: '#home-telegram-bar', text: true, d: ['#1a5cff', '#e10600'] },
-        { k: 'header', t: 'Top Header Background', sel: '.app-top-header', text: false, d: ['#0f1424', '#141824'] },
-        { k: 'nav', t: 'Bottom Navigation Background', sel: '.bottom-nav', text: false, d: ['#0f1424', '#141824'] },
-        { k: 'cards', t: 'Match / Category Cards Background', sel: '.category-card, .match-card', text: false, d: ['#141824', '#1b2136'] },
-        { k: 'page', t: 'Page Background', sel: 'body', text: false, d: ['#0a0c12', '#141a30'] }
+        { k: 'primaryBtn', t: 'Primary Buttons', w: 'Login / Register বাটন, ম্যাচ Join বাটন, VERIFY, Support বাটন', sel: '.btn-primary, .btn-join:not(.full), .btn-verify, .home-support-btn', text: true, d: ['#1a5cff', '#5b4cdb'] },
+        { k: 'walletAdd', t: 'Wallet — Add Money Button', w: 'ওয়ালেট পেজের Add Money বাটন', sel: '.btn-wallet-add', text: true, d: ['#00b894', '#00d68f'] },
+        { k: 'walletWd', t: 'Wallet — Withdraw Button', w: 'ওয়ালেট পেজের Withdraw বাটন', sel: '.btn-wallet-wd', text: true, d: ['#e10600', '#ff6b6b'] },
+        { k: 'logout', t: 'Logout Button', w: 'প্রোফাইল পেজের নিচের Logout বাটন', sel: '.btn-logout', text: true, d: ['#1a5cff', '#3d6ef5'] },
+        { k: 'telegram', t: 'Telegram Bar', w: 'হোম পেজের t.me/huntxbd বারটি', sel: '#home-telegram-bar', text: true, d: ['#1a5cff', '#e10600'] },
+        { k: 'header', t: 'Top Header Background', w: 'উপরের লোগো ও ব্যালেন্সের বার', sel: '.app-top-header', text: false, d: ['#0f1424', '#141824'] },
+        { k: 'nav', t: 'Bottom Navigation Background', w: 'নিচের Play / Pro League / Results মেনু', sel: '.bottom-nav', text: false, d: ['#0f1424', '#141824'] },
+        { k: 'cards', t: 'Match / Category Cards Background', w: 'ক্যাটাগরি ও ম্যাচের কার্ডের ব্যাকগ্রাউন্ড', sel: '.category-card, .match-card', text: false, d: ['#141824', '#1b2136'] },
+        { k: 'page', t: 'Page Background', w: 'পুরো অ্যাপের পেছনের রঙ', sel: 'body', text: false, d: ['#0a0c12', '#141a30'] }
     ];
     var state = clone(DEF);
     var draft = null;
     var styleEl = null;
 
+    function hex2(n) { n = Math.max(0, Math.min(255, Math.round(Number(n)))); return (n < 16 ? '0' : '') + n.toString(16); }
+    function rgbList(str) {
+        var out = [], re = /rgba?\(([^)]+)\)/g, m;
+        while ((m = re.exec(str || ''))) {
+            var p = m[1].split(/[\s,\/]+/).filter(Boolean);
+            if (p.length > 3 && Number(p[3]) === 0) continue;
+            out.push('#' + hex2(p[0]) + hex2(p[1]) + hex2(p[2]));
+        }
+        return out;
+    }
+    // Read the REAL current colors of each element (with admin overrides switched off)
+    function readCurrent() {
+        var saved = styleEl ? styleEl.textContent : '';
+        if (styleEl) styleEl.textContent = '';
+        TARGETS.forEach(function (t) {
+            t.cur = null;
+            var sels = t.sel.split(',');
+            for (var i = 0; i < sels.length; i++) {
+                var el = null;
+                try { el = document.querySelector(sels[i].trim()); } catch (e) {}
+                if (!el) continue;
+                var cs = getComputedStyle(el);
+                var cols = (t.k !== 'page' && cs.backgroundImage && cs.backgroundImage !== 'none') ? rgbList(cs.backgroundImage) : [];
+                if (!cols.length) cols = rgbList(cs.backgroundColor);
+                if (!cols.length) continue;
+                var tx = rgbList(cs.color)[0] || '#ffffff';
+                t.cur = { c1: cols[0], c2: cols[cols.length > 1 ? cols.length - 1 : 0], grad: cols.length > 1, tc: tx };
+                break;
+            }
+            if (!t.cur) t.cur = { c1: t.d[0], c2: t.d[1], grad: true, tc: '#ffffff' };
+        });
+        if (styleEl) styleEl.textContent = saved;
+    }
     function clone(o) { return JSON.parse(JSON.stringify(o)); }
     function merge(raw) {
         var s = clone(DEF);
@@ -8689,7 +8730,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
                     if (snap && snap.exists) { var x = snap.data(); raw = x.value !== undefined ? x.value : x; }
                     state = merge(raw);
                     try { localStorage.setItem(LS, JSON.stringify(raw || {})); } catch (e) {}
-                    if (!draft) apply(state);
+                    if (!draft || !document.getElementById('hx-d-save')) { draft = null; apply(state); }
                 }, function () {});
             } else if (++tries > 60) clearInterval(t);
         }, 500);
@@ -8709,7 +8750,9 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     function targetRow(t) {
         var k = 'colors.' + t.k;
         return '<div class="admin-section hx-d-row" data-t="' + t.k + '" style="padding:12px;">' +
-            '<h4 style="font-size:14px;margin-bottom:8px;">' + t.t + '</h4>' +
+            '<h4 style="font-size:14px;margin-bottom:2px;">' + t.t + '</h4>' +
+            '<p style="font-size:11px;color:#8b93a7;margin-bottom:6px;">' + (t.w || '') + '</p>' +
+            '<p style="font-size:11px;margin-bottom:6px;">এখনকার রঙ: <b class="hx-d-cur"></b></p>' +
             '<div class="hx-d-prev" style="height:22px;border-radius:8px;margin-bottom:8px;border:1px solid rgba(255,255,255,.15)"></div>' +
             '<select data-p="' + k + '.mode" style="width:100%;padding:9px;border-radius:10px;margin-bottom:8px;font-family:inherit;"><option value="">Default (আগের মতো)</option><option value="solid">Solid color</option><option value="grad">Gradient</option></select>' +
             '<div>' + col(k + '.c1', 'Color 1') + col(k + '.c2', 'Color 2 (gradient)') + '</div>' +
@@ -8727,7 +8770,9 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
             else if (el.type === 'color') {
                 if (!ok(v)) {
                     var m = p.match(/^colors\.(\w+)\.(c1|c2|tc)$/), t = m && TARGETS.filter(function (x) { return x.k === m[1]; })[0];
-                    v = t ? (m[2] === 'c1' ? t.d[0] : m[2] === 'c2' ? t.d[1] : '#ffffff') : '#ffffff';
+                    v = t ? (m[2] === 'c1' ? t.cur.c1 : m[2] === 'c2' ? t.cur.c2 : t.cur.tc) : '#ffffff';
+                    var vm = p.match(/^vars\.(\w+)$/);
+                    if (vm) v = vm[1] === 'primary' ? '#e10600' : vm[1] === 'secondary' ? '#1a5cff' : '#ff6b6b';
                 }
                 el.value = v;
             } else el.value = (v === undefined || v === null) ? (el.type === 'range' && /angle/.test(p) ? 135 : '') : v;
@@ -8736,9 +8781,11 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
         box.querySelectorAll('.hx-d-row').forEach(function (row) {
             var c = draft.colors[row.getAttribute('data-t')] || {}, t = TARGETS.filter(function (x) { return x.k === row.getAttribute('data-t'); })[0];
             var p = row.querySelector('.hx-d-prev');
-            if (!c.mode) p.style.background = 'repeating-linear-gradient(45deg,#2a2f45,#2a2f45 6px,#1d2236 6px,#1d2236 12px)';
+            var cur = row.querySelector('.hx-d-cur');
+            if (cur) cur.textContent = t.cur.grad ? t.cur.c1 + '  →  ' + t.cur.c2 : t.cur.c1;
+            if (!c.mode) p.style.background = t.cur.grad ? 'linear-gradient(135deg,' + t.cur.c1 + ',' + t.cur.c2 + ')' : t.cur.c1;
             else {
-                var c1 = ok(c.c1) ? c.c1 : t.d[0], c2 = ok(c.c2) ? c.c2 : t.d[1];
+                var c1 = ok(c.c1) ? c.c1 : t.cur.c1, c2 = ok(c.c2) ? c.c2 : t.cur.c2;
                 p.style.background = c.mode === 'solid' ? c1 : 'linear-gradient(' + (Number(c.angle) || 135) + 'deg,' + c1 + ',' + c2 + ')';
             }
         });
@@ -8746,9 +8793,10 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
 
     function render(container) {
         if (!container) return;
+        readCurrent();
         draft = merge(state);
         // keep colors/vars exactly as saved (merge returns clones)
-        var h = '<div class="admin-section"><h3>🎨 App Design</h3><p style="font-size:12px;color:#8b93a7;line-height:1.5;margin-bottom:6px;">এখানে যা বদলাবেন সাথে সাথে আপনার ফোনে প্রিভিউ দেখাবে। <b>Save</b> চাপলে সব ইউজারের অ্যাপে আপডেট হবে।</p></div>';
+        var h = '<div class="admin-section"><h3>🎨 App Design</h3><p style="font-size:12px;color:#8b93a7;line-height:1.5;margin-bottom:6px;">এখানে যা বদলাবেন সাথে সাথে নিজে থেকে সেভ হয়ে সব ইউজারের অ্যাপে আপডেট হবে। Default রাখলে অ্যাপের আগের রঙই থাকবে। <b id="hx-d-status" style="color:#00d68f;"></b></p></div>';
         h += '<div class="admin-section"><h3>💡 RGB Lights</h3>' +
             sw('rgb.card', 'Card RGB Light', 'ম্যাচ ও ক্যাটাগরি কার্ডের চারপাশে ঘুরন্ত আলো') +
             sw('rgb.logo', 'Logo Glow', 'উপরের লোগোর গ্লো') +
@@ -8768,7 +8816,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
             '<div style="margin-bottom:6px;">' + col('vars.primary', 'Main (Red) Color') + col('vars.secondary', 'Secondary (Blue)') + col('vars.navActive', 'Nav Active Color') + '</div>' +
             '<button type="button" class="btn-sm delete" id="hx-d-clearvars">Main/Nav কালার Default করুন</button></div>';
         h += TARGETS.map(targetRow).join('');
-        h += '<div class="admin-section"><button type="button" class="btn-primary" id="hx-d-save">💾 Save for All Users</button>' +
+        h += '<div class="admin-section"><button type="button" class="btn-primary" id="hx-d-save">💾 Save Now</button>' +
             '<button type="button" class="btn-sm delete" id="hx-d-reset" style="margin-top:10px;width:100%;padding:12px;">↺ সব Default এ ফিরিয়ে আনুন</button></div>';
         container.innerHTML = h;
         fill(container);
@@ -8782,22 +8830,27 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
                 var sel = container.querySelector('.hx-d-row[data-t="' + k + '"] select'); if (sel) sel.value = draft.colors[k].mode;
             }
             apply(draft); fill(container);
+            var st = container.querySelector('#hx-d-status'); if (st) st.textContent = 'সেভ হচ্ছে...';
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(function () { persist(clone(draft), null); }, 500);
         }
+        var saveTimer = 0;
         container.addEventListener('input', function (e) { if (e.target.hasAttribute && e.target.hasAttribute('data-p') && e.target.type !== 'checkbox' && e.target.tagName !== 'SELECT') upd(e.target); });
         container.addEventListener('change', function (e) { if (e.target.hasAttribute && e.target.hasAttribute('data-p')) upd(e.target); });
         container.querySelector('#hx-d-clearvars').addEventListener('click', function () { draft.vars = {}; apply(draft); fill(container); });
         function persist(obj, msg) {
+            var st = container.querySelector('#hx-d-status');
             if (!currentUser || !currentUser.isAdmin) return say('শুধু অ্যাডমিন');
             cloudSetConfig('appDesign', obj).then(function () {
-                state = merge(obj); draft = null; apply(state);
+                state = merge(obj);
                 try { localStorage.setItem(LS, JSON.stringify(obj)); } catch (e) {}
-                say(msg);
-            }).catch(function () { say('Save ব্যর্থ হয়েছে'); });
+                if (st) st.textContent = '✓ সেভ হয়েছে';
+                if (msg) say(msg);
+            }).catch(function () { if (st) st.textContent = ''; say('Save ব্যর্থ হয়েছে'); });
         }
         container.querySelector('#hx-d-save').addEventListener('click', function () { persist(clone(draft), 'সবার জন্য Save হয়েছে ✓'); });
         container.querySelector('#hx-d-reset').addEventListener('click', function () {
-            draft = clone(DEF); apply(draft); fill(container); persist({}, 'Default এ ফিরেছে ✓');
-            draft = merge({}); fill(container);
+            draft = merge({}); readCurrent(); apply(draft); fill(container); persist({}, 'Default এ ফিরেছে ✓');
         });
     }
 

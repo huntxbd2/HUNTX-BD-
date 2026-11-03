@@ -4751,13 +4751,15 @@ body.hx-l-btn .btn-primary, body.hx-l-btn .btn-join:not(.full), body.hx-l-btn .b
 }
 @keyframes hxBtnGlow { 50% { filter: hue-rotate(18deg) saturate(1.25); } }
 
-/* ---------- Add Money: method picker ---------- */
+/* ---------- Add Money: method picker (light cards like reference) ---------- */
 .hx-dep-picker { padding: 6px 14px 14px; }
-.hx-dep-picker h3 { font-size: 14px; margin: 8px 2px 12px; color: var(--text, #f0f2f8); }
-.hx-dep-opt { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; margin-bottom: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); background: var(--card, #141824); color: var(--text, #f0f2f8); font-family: inherit; text-align: left; cursor: pointer; }
-.hx-dep-ic { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 18px; flex-shrink: 0; }
-.hx-dep-tx { flex: 1; display: flex; flex-direction: column; }
-.hx-dep-tx strong { font-size: 15px; }
-.hx-dep-tx small { font-size: 11px; color: var(--text-light, #8b93a7); }
-.hx-dep-opt > i { color: var(--text-light, #8b93a7); font-size: 12px; }
+.hx-dep-picker h3 { font-size: 15px; font-weight: 700; margin: 10px 2px 12px; color: var(--text, #f0f2f8); }
+.hx-dep-opt { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; margin-bottom: 10px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff; color: #1a1d2b; font-family: inherit; text-align: left; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.hx-dep-ic { width: 52px; height: 52px; border-radius: 10px; object-fit: contain; flex-shrink: 0; background: #fff; }
+.hx-dep-txt { display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 22px; }
+.hx-dep-tx { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.hx-dep-tx strong { font-size: 17px; font-weight: 700; }
+.hx-dep-tx small { font-size: 12px; color: #6b7285; }
+.hx-dep-opt > i { color: #6b7285; font-size: 13px; }
+.hx-dep-video { display: block; width: 100%; margin-top: 14px; padding: 16px; border: 0; border-radius: 14px; background: #fde4ec; color: #d81b60; font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; }
 .hx-dep-change { display: block; margin: 4px 14px 8px auto; background: none; border: 0; color: #ff6b6b; font-size: 12px; font-family: inherit; cursor: pointer; }
