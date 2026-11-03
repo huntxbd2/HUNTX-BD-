@@ -1748,6 +1748,7 @@ function navigateTo(page, opts = {}) {
         }
         if (page === 'top-players') loadTopPlayers();
         if (page === 'deposit') {
+            try { hxDepositPicker(true); } catch (e) {}
             renderDepositInstructions(currentDepositMethod || 'bKash');
             document.querySelectorAll('.dep-tab').forEach(t => {
                 t.classList.toggle('active', t.dataset.method === (currentDepositMethod || 'bKash'));
@@ -3262,7 +3263,7 @@ function openMatchDetails(matchId) {
         ? (match.maps.length + ' Maps · ' + match.maps.join(', '))
         : (match.map || '—');
     const settings = CACHE.settings || {};
-    const showPlayers = settings.showJoinedPlayers !== false;
+    const showPlayers = settings.showJoinedPlayers !== false && !match.hidePlayers;
     const joins = (CACHE.joins || []).filter(j => String(j.matchId) === String(matchId));
     // Prize chips (up to 48)
     const p = match.prizes || {};
@@ -3690,6 +3691,54 @@ function clearDepositForm() {
 function getPaymentInfo(method) {
     const settings = CACHE.settings || {};
     return (settings.payments || {})[method] || { number: '01700000000', type: 'Personal' };
+}
+
+/** Add Money: pick payment method first, then show the TrxID form */
+function hxDepositPicker(showPicker) {
+    const page = document.getElementById('deposit-page');
+    if (!page) return;
+    const tabs = page.querySelector('.deposit-method-tabs');
+    const box = document.getElementById('deposit-method-box');
+    let pick = document.getElementById('deposit-picker');
+    if (!pick) {
+        pick = document.createElement('div');
+        pick.id = 'deposit-picker';
+        pick.className = 'hx-dep-picker';
+        const settings = CACHE.settings || {};
+        const pays = settings.payments || {};
+        const list = [
+            { k: 'bKash', n: 'বিকাশ', c: '#e2136e', s: 'সেন্ড মানি অথবা পেমেন্ট' },
+            { k: 'Nagad', n: 'নগদ', c: '#f7941d', s: 'সেন্ড মানি' }
+        ];
+        if (pays.Rocket && pays.Rocket.number) list.push({ k: 'Rocket', n: 'রকেট', c: '#8c3494', s: 'সেন্ড মানি' });
+        pick.innerHTML = '<h3>পেমেন্টের মাধ্যম নির্বাচন করুন</h3>' + list.map(m =>
+            '<button type="button" class="hx-dep-opt" data-pm="' + m.k + '">' +
+            '<span class="hx-dep-ic" style="background:' + m.c + '">' + m.k.charAt(0) + '</span>' +
+            '<span class="hx-dep-tx"><strong>' + m.n + '</strong><small>' + m.s + '</small></span>' +
+            '<i class="fas fa-chevron-right"></i></button>').join('');
+        page.insertBefore(pick, tabs || box);
+        pick.addEventListener('click', e => {
+            const b = e.target.closest('[data-pm]');
+            if (!b) return;
+            currentDepositMethod = b.dataset.pm;
+            document.querySelectorAll('.dep-tab').forEach(t => t.classList.toggle('active', t.dataset.method === currentDepositMethod));
+            renderDepositInstructions(currentDepositMethod);
+            hxDepositPicker(false);
+            window.scrollTo(0, 0);
+        });
+        const chg = document.createElement('button');
+        chg.type = 'button';
+        chg.id = 'deposit-change-method';
+        chg.className = 'hx-dep-change';
+        chg.textContent = 'পেমেন্ট মেথড পরিবর্তন করুন';
+        chg.addEventListener('click', () => hxDepositPicker(true));
+        page.insertBefore(chg, box);
+    }
+    pick.classList.toggle('hidden', !showPicker);
+    if (tabs) tabs.classList.add('hidden');
+    if (box) box.classList.toggle('hidden', showPicker);
+    const chg2 = document.getElementById('deposit-change-method');
+    if (chg2) chg2.classList.toggle('hidden', showPicker);
 }
 
 function renderDepositInstructions(method) {
@@ -4483,7 +4532,7 @@ function openAdminModule(tab) {
     const titles = {
         matches: 'Matches', deposits: 'Add Money', withdraws: 'Withdrawals',
         users: 'Users', 'results-dist': 'Result Dist', rules: 'Categories / Rules',
-        'pro-control': 'Pro League', settings: 'App Settings', 'app-control': 'App Control'
+        'pro-control': 'Pro League', settings: 'App Settings', 'app-control': 'App Control', 'app-design': 'App Design'
     };
     const t = $('#admin-mod-title');
     if (t) t.textContent = titles[tab] || tab;
@@ -4585,6 +4634,9 @@ async function loadAdmin(tab = 'matches') {
     else if (tab === 'pro-control') renderAdminProLeagueControl(container);
     else if (tab === 'app-control') {
         renderAdminAppControl(container);
+    }
+    else if (tab === 'app-design') {
+        if (window.hxRenderDesignAdmin) window.hxRenderDesignAdmin(container);
     }
     else if (tab === 'settings') {
         (async () => {
@@ -4713,6 +4765,7 @@ function renderAdminMatches(container) {
                         <button class="btn-sm edit" onclick="adminEditRoom('${m.id}')">Room</button>
                         <button class="btn-sm" style="background:${m.registrationClosed ? '#00b894' : '#fdcb6e'};color:${m.registrationClosed ? '#fff' : '#2d3436'};" onclick="adminToggleRegistration('${m.id}')">${m.registrationClosed ? 'Open Registration' : 'Close Registration'}</button>
                         <button class="btn-sm info" onclick="adminViewPlayers('${m.id}')">Players</button>
+                        <button class="btn-sm" style="background:${m.hidePlayers ? '#e17055' : '#00b894'};color:#fff;" onclick="adminTogglePlayerList('${m.id}')">Player List: ${m.hidePlayers ? 'OFF' : 'ON'}</button>
                         ${String(m.category) === 'pro-versus' ? `<button class="btn-sm edit" onclick="adminEditVersusMatch(${m.id})">Edit Logos</button>` : ''}
                         <button class="btn-sm" style="background:#00b894;color:#fff;" onclick="adminCopyMatch('${m.id}')">Copy Match</button>
                         <button class="btn-sm" style="background:#6c5ce7;color:#fff;" onclick="adminOpenResults('${m.id}')">Results / Prize</button>
@@ -4984,6 +5037,22 @@ async function adminCreateMatch() {
     }
 }
 
+
+async function adminTogglePlayerList(matchId) {
+    if (!currentUser?.isAdmin) return toast('শুধু অ্যাডমিন');
+    const match = (CACHE.matches || []).find(m => String(m.id) === String(matchId));
+    if (!match) return toast('ম্যাচ পাওয়া যায়নি');
+    const next = !match.hidePlayers;
+    try {
+        await cloudSet('matches', match.id, { hidePlayers: next });
+        match.hidePlayers = next;
+        toast(next ? 'এই ম্যাচের Player List বন্ধ — ইউজার দেখতে পারবে না' : 'এই ম্যাচের Player List চালু');
+        loadAdmin('matches');
+    } catch (e) {
+        console.error(e);
+        toast('আপডেট ব্যর্থ');
+    }
+}
 
 async function adminToggleRegistration(matchId) {
     if (!currentUser?.isAdmin) return toast('শুধু অ্যাডমিন');
@@ -8235,6 +8304,7 @@ window.joinMatch = joinMatch;
 window.openMatchDetails = openMatchDetails;
 window.closeMatchDetails = closeMatchDetails;
 window.adminToggleRegistration = adminToggleRegistration;
+window.adminTogglePlayerList = adminTogglePlayerList;
 window.adminSetPointTableUrl = adminSetPointTableUrl;
 window.watchCurrentUser = watchCurrentUser;
 window.loadAllUsersForAdmin = loadAllUsersForAdmin;
@@ -8442,4 +8512,464 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
+})();
+
+
+/* ===== fx.js (merged) ===== */
+/* HuntX BD — FX layer: RGB lights, color grading overlay, click + touch animations.
+   Add-on only. Touches no app logic. */
+(function () {
+    'use strict';
+    function mk(tag, id, cls) {
+        var e = document.createElement(tag);
+        if (id) e.id = id;
+        if (cls) e.className = cls;
+        return e;
+    }
+    function init() {
+        if (document.getElementById('hx-grade')) return;
+        // color grading overlay
+        document.body.appendChild(mk('div', 'hx-grade'));
+
+        // speed: lazy-decode images (low network friendly)
+        function tune(root) {
+            var imgs = root.querySelectorAll ? root.querySelectorAll('img:not([data-hx])') : [];
+            for (var i = 0; i < imgs.length; i++) {
+                var im = imgs[i]; im.setAttribute('data-hx', '1');
+                if (!im.hasAttribute('decoding')) im.decoding = 'async';
+                if (!im.hasAttribute('loading') && !im.closest('.app-top-header')) im.loading = 'lazy';
+            }
+        }
+        tune(document);
+        var tq = 0;
+        new MutationObserver(function () {
+            if (tq) return;
+            tq = setTimeout(function () { tq = 0; tune(document); }, 300);
+        }).observe(document.body, { childList: true, subtree: true });
+
+        var hue = 0;
+        var lastTrail = 0;
+        var PRESS_SEL = 'button, .nav-item, .category-card, .match-card, .menu-item, .tab, .tx-tab, .notif-card, .admin-mod, .wallet-learn-item, .wallet-quick-card, .home-support-card, .dep-tab, .notif-filter, .notif-tab, .pay-box';
+
+        function trail(x, y) {
+            if (window.hxDesign && window.hxDesign.touch && window.hxDesign.touch.trail === false) return;
+            var t = mk('span', null, 'hx-trail');
+            hue = (hue + 18) % 360;
+            t.style.left = x + 'px';
+            t.style.top = y + 'px';
+            t.style.background = 'radial-gradient(circle, hsla(' + hue + ',100%,70%,0.95), hsla(' + ((hue + 60) % 360) + ',100%,60%,0.35) 60%, transparent 72%)';
+            t.style.boxShadow = '0 0 14px hsla(' + hue + ',100%,65%,0.7)';
+            document.body.appendChild(t);
+            setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 600);
+        }
+
+        var pressed = null;
+        function release() {
+            if (pressed) { pressed.classList.remove('hx-press'); pressed = null; }
+        }
+        document.addEventListener('pointerdown', function (e) {
+            trail(e.clientX, e.clientY);
+            var el = e.target.closest ? e.target.closest(PRESS_SEL) : null;
+            if (el && !el.disabled) { pressed = el; el.classList.add('hx-press'); }
+        }, { passive: true });
+        document.addEventListener('pointermove', function (e) {
+            if (e.pointerType === 'mouse' && e.buttons === 0) return;
+            var now = Date.now();
+            if (now - lastTrail < 70) return;
+            lastTrail = now;
+            trail(e.clientX, e.clientY);
+        }, { passive: true });
+        ['pointerup', 'pointercancel', 'pointerleave', 'scroll'].forEach(function (ev) {
+            document.addEventListener(ev, release, { passive: true, capture: true });
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+
+
+/* ===== design.js (merged) ===== */
+/* HuntX BD — App Design (admin-controlled look & feel).
+   Admin → App Design: RGB lights on/off + colors, color grading, touch effects,
+   button / header / nav / background colors (solid or gradient).
+   Saved to Firestore config/appDesign → applies to every user's app. */
+(function () {
+    'use strict';
+    var LS = 'hx_design_v1';
+    var DEF = {
+        rgb:   { card: true, c1: '#00c8ff', c2: '#7c4dff', c3: '#ff2d95', speed: 5, thick: 1.5, logo: true, header: false, nav: false, top: false, btn: false },
+        grade: { on: true, level: 100 },
+        touch: { trail: true, press: true },
+        colors: {},
+        vars: {}
+    };
+    var TARGETS = [
+        { k: 'primaryBtn', t: 'Primary Buttons (Register, Join, Support…)', sel: '.btn-primary, .btn-join:not(.full), .btn-verify, .home-support-btn', text: true, d: ['#1a5cff', '#5b4cdb'] },
+        { k: 'walletAdd', t: 'Wallet — Add Money Button', sel: '.btn-wallet-add', text: true, d: ['#00b894', '#00d68f'] },
+        { k: 'walletWd', t: 'Wallet — Withdraw Button', sel: '.btn-wallet-wd', text: true, d: ['#e10600', '#ff6b6b'] },
+        { k: 'logout', t: 'Logout Button', sel: '.btn-logout', text: true, d: ['#1a5cff', '#3d6ef5'] },
+        { k: 'telegram', t: 'Telegram Bar', sel: '#home-telegram-bar', text: true, d: ['#1a5cff', '#e10600'] },
+        { k: 'header', t: 'Top Header Background', sel: '.app-top-header', text: false, d: ['#0f1424', '#141824'] },
+        { k: 'nav', t: 'Bottom Navigation Background', sel: '.bottom-nav', text: false, d: ['#0f1424', '#141824'] },
+        { k: 'cards', t: 'Match / Category Cards Background', sel: '.category-card, .match-card', text: false, d: ['#141824', '#1b2136'] },
+        { k: 'page', t: 'Page Background', sel: 'body', text: false, d: ['#0a0c12', '#141a30'] }
+    ];
+    var state = clone(DEF);
+    var draft = null;
+    var styleEl = null;
+
+    function clone(o) { return JSON.parse(JSON.stringify(o)); }
+    function merge(raw) {
+        var s = clone(DEF);
+        if (!raw || typeof raw !== 'object') return s;
+        ['rgb', 'grade', 'touch', 'colors', 'vars'].forEach(function (g) {
+            if (raw[g] && typeof raw[g] === 'object') for (var k in raw[g]) s[g][k] = raw[g][k];
+        });
+        return s;
+    }
+    function ok(c) { return /^#[0-9a-fA-F]{6}$/.test(c || ''); }
+    function say(m) { try { if (typeof toast === 'function') toast(m); } catch (e) {} }
+
+    function buildCss(d) {
+        var css = '';
+        TARGETS.forEach(function (t) {
+            var c = d.colors[t.k];
+            if (!c || !c.mode) return;
+            var c1 = ok(c.c1) ? c.c1 : t.d[0], c2 = ok(c.c2) ? c.c2 : t.d[1];
+            var bg = c.mode === 'solid' ? c1 : 'linear-gradient(' + (Number(c.angle) || 135) + 'deg,' + c1 + ',' + c2 + ')';
+            var sel = t.sel.split(',').map(function (x) { return 'html body ' + x.trim(); }).join(',');
+            if (t.k === 'page') sel = 'html body, html';
+            css += sel + '{background:' + bg + ' !important;' + (t.k === 'page' ? 'background-attachment:fixed !important;' : '') + '}\n';
+            if (t.text && c.tcOn && ok(c.tc)) {
+                var ts = t.sel.split(',').map(function (x) { x = x.trim(); return 'html body ' + x + ',html body ' + x + ' *'; }).join(',');
+                css += ts + '{color:' + c.tc + ' !important;}\n';
+            }
+        });
+        var v = d.vars || {};
+        if (ok(v.primary)) css += ':root,body,body.light-theme{--primary:' + v.primary + ' !important;--accent:' + v.primary + ' !important;}\n';
+        if (ok(v.secondary)) css += ':root,body,body.light-theme{--secondary:' + v.secondary + ' !important;}\n';
+        if (ok(v.navActive)) css += 'html body .nav-item.active,html body .nav-item.active i,html body .nav-item.active span{color:' + v.navActive + ' !important;}\n';
+        return css;
+    }
+
+    function apply(d) {
+        var r = document.documentElement;
+        var g = d.rgb;
+        r.style.setProperty('--hx-c1', ok(g.c1) ? g.c1 : DEF.rgb.c1);
+        r.style.setProperty('--hx-c2', ok(g.c2) ? g.c2 : DEF.rgb.c2);
+        r.style.setProperty('--hx-c3', ok(g.c3) ? g.c3 : DEF.rgb.c3);
+        r.style.setProperty('--hx-spd', (Number(g.speed) || 5) + 's');
+        r.style.setProperty('--hx-thick', (Number(g.thick) || 1.5) + 'px');
+        r.style.setProperty('--hx-grade-op', String(Math.max(0, Math.min(1.5, (Number(d.grade.level) || 0) / 100))));
+        var b = document.body;
+        if (!b) return;
+        b.classList.toggle('hx-no-card-light', !g.card);
+        b.classList.toggle('hx-no-logo-glow', !g.logo);
+        b.classList.toggle('hx-l-header', !!g.header);
+        b.classList.toggle('hx-l-nav', !!g.nav);
+        b.classList.toggle('hx-l-top', !!g.top);
+        b.classList.toggle('hx-l-btn', !!g.btn);
+        b.classList.toggle('hx-no-grade', !d.grade.on);
+        b.classList.toggle('hx-no-press', !d.touch.press);
+        window.hxDesign = d;
+        if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'hx-design-css'; document.head.appendChild(styleEl); }
+        styleEl.textContent = buildCss(d);
+    }
+
+    // ---- boot: cached copy first (instant), then live copy from Firestore ----
+    function boot() {
+        try { var c = localStorage.getItem(LS); if (c) state = merge(JSON.parse(c)); } catch (e) {}
+        apply(state);
+        var tries = 0;
+        var t = setInterval(function () {
+            if (typeof firebaseReady !== 'undefined' && firebaseReady && typeof db !== 'undefined' && db) {
+                clearInterval(t);
+                db.collection('config').doc('appDesign').onSnapshot(function (snap) {
+                    var raw = null;
+                    if (snap && snap.exists) { var x = snap.data(); raw = x.value !== undefined ? x.value : x; }
+                    state = merge(raw);
+                    try { localStorage.setItem(LS, JSON.stringify(raw || {})); } catch (e) {}
+                    if (!draft) apply(state);
+                }, function () {});
+            } else if (++tries > 60) clearInterval(t);
+        }, 500);
+    }
+
+    // ---- admin UI ----
+    function sw(path, title, sub) {
+        return '<div class="hx-push-card" style="margin:0 0 8px;padding:10px 12px;"><div class="hx-push-txt"><strong>' + title + '</strong>' + (sub ? '<span>' + sub + '</span>' : '') + '</div>' +
+            '<label class="hx-switch"><input type="checkbox" data-p="' + path + '"><span class="hx-knob"></span></label></div>';
+    }
+    function rng(path, title, min, max, step) {
+        return '<div class="form-group"><label>' + title + ' <b data-v="' + path + '"></b></label><input type="range" data-p="' + path + '" min="' + min + '" max="' + max + '" step="' + step + '" style="width:100%"></div>';
+    }
+    function col(path, title) {
+        return '<div style="display:inline-flex;align-items:center;gap:6px;margin:0 12px 8px 0;font-size:12px;"><input type="color" data-p="' + path + '" style="width:40px;height:32px;padding:0;border:0;background:none;"> ' + title + '</div>';
+    }
+    function targetRow(t) {
+        var k = 'colors.' + t.k;
+        return '<div class="admin-section hx-d-row" data-t="' + t.k + '" style="padding:12px;">' +
+            '<h4 style="font-size:14px;margin-bottom:8px;">' + t.t + '</h4>' +
+            '<div class="hx-d-prev" style="height:22px;border-radius:8px;margin-bottom:8px;border:1px solid rgba(255,255,255,.15)"></div>' +
+            '<select data-p="' + k + '.mode" style="width:100%;padding:9px;border-radius:10px;margin-bottom:8px;font-family:inherit;"><option value="">Default (আগের মতো)</option><option value="solid">Solid color</option><option value="grad">Gradient</option></select>' +
+            '<div>' + col(k + '.c1', 'Color 1') + col(k + '.c2', 'Color 2 (gradient)') + '</div>' +
+            '<div class="form-group" style="margin-bottom:6px;"><label>Gradient angle <b data-v="' + k + '.angle"></b>°</label><input type="range" data-p="' + k + '.angle" min="0" max="360" step="5" style="width:100%"></div>' +
+            (t.text ? '<label style="font-size:12px;display:flex;align-items:center;gap:8px;"><input type="checkbox" data-p="' + k + '.tcOn"> Text color আলাদা করবো ' + col(k + '.tc', '') + '</label>' : '') +
+            '</div>';
+    }
+    function get(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
+    function set(o, p, v) { var ks = p.split('.'), c = o; for (var i = 0; i < ks.length - 1; i++) { if (!c[ks[i]] || typeof c[ks[i]] !== 'object') c[ks[i]] = {}; c = c[ks[i]]; } c[ks[ks.length - 1]] = v; }
+
+    function fill(box) {
+        box.querySelectorAll('[data-p]').forEach(function (el) {
+            var p = el.getAttribute('data-p'), v = get(draft, p);
+            if (el.type === 'checkbox') el.checked = !!v;
+            else if (el.type === 'color') {
+                if (!ok(v)) {
+                    var m = p.match(/^colors\.(\w+)\.(c1|c2|tc)$/), t = m && TARGETS.filter(function (x) { return x.k === m[1]; })[0];
+                    v = t ? (m[2] === 'c1' ? t.d[0] : m[2] === 'c2' ? t.d[1] : '#ffffff') : '#ffffff';
+                }
+                el.value = v;
+            } else el.value = (v === undefined || v === null) ? (el.type === 'range' && /angle/.test(p) ? 135 : '') : v;
+        });
+        box.querySelectorAll('[data-v]').forEach(function (b) { var v = get(draft, b.getAttribute('data-v')); b.textContent = (v === undefined ? (/angle/.test(b.getAttribute('data-v')) ? 135 : '') : v); });
+        box.querySelectorAll('.hx-d-row').forEach(function (row) {
+            var c = draft.colors[row.getAttribute('data-t')] || {}, t = TARGETS.filter(function (x) { return x.k === row.getAttribute('data-t'); })[0];
+            var p = row.querySelector('.hx-d-prev');
+            if (!c.mode) p.style.background = 'repeating-linear-gradient(45deg,#2a2f45,#2a2f45 6px,#1d2236 6px,#1d2236 12px)';
+            else {
+                var c1 = ok(c.c1) ? c.c1 : t.d[0], c2 = ok(c.c2) ? c.c2 : t.d[1];
+                p.style.background = c.mode === 'solid' ? c1 : 'linear-gradient(' + (Number(c.angle) || 135) + 'deg,' + c1 + ',' + c2 + ')';
+            }
+        });
+    }
+
+    function render(container) {
+        if (!container) return;
+        draft = merge(state);
+        // keep colors/vars exactly as saved (merge returns clones)
+        var h = '<div class="admin-section"><h3>🎨 App Design</h3><p style="font-size:12px;color:#8b93a7;line-height:1.5;margin-bottom:6px;">এখানে যা বদলাবেন সাথে সাথে আপনার ফোনে প্রিভিউ দেখাবে। <b>Save</b> চাপলে সব ইউজারের অ্যাপে আপডেট হবে।</p></div>';
+        h += '<div class="admin-section"><h3>💡 RGB Lights</h3>' +
+            sw('rgb.card', 'Card RGB Light', 'ম্যাচ ও ক্যাটাগরি কার্ডের চারপাশে ঘুরন্ত আলো') +
+            sw('rgb.logo', 'Logo Glow', 'উপরের লোগোর গ্লো') +
+            sw('rgb.top', 'Top Screen RGB Line', 'স্ক্রিনের একদম উপরে লাইন') +
+            sw('rgb.header', 'Header RGB Line', 'হেডারের নিচে লাইন') +
+            sw('rgb.nav', 'Bottom Nav RGB Line', 'নিচের নেভিগেশনের উপরে লাইন') +
+            sw('rgb.btn', 'Button RGB Glow', 'বাটনে রঙ বদলানো গ্লো') +
+            '<div style="margin:6px 0 10px;">' + col('rgb.c1', 'Light 1') + col('rgb.c2', 'Light 2') + col('rgb.c3', 'Light 3') + '</div>' +
+            rng('rgb.speed', 'ঘোরার সময় (সেকেন্ড, কম = দ্রুত)', 2, 15, 0.5) +
+            rng('rgb.thick', 'আলোর পুরুত্ব (px)', 1, 4, 0.5) + '</div>';
+        h += '<div class="admin-section"><h3>🎞️ Color Grading & Touch</h3>' +
+            sw('grade.on', 'Color Grading', 'পুরো অ্যাপে রঙের লেয়ার') +
+            rng('grade.level', 'Grading তীব্রতা (%)', 0, 150, 5) +
+            sw('touch.trail', 'Touch Trail', 'আঙুল টানলে রঙিন আলো') +
+            sw('touch.press', 'Press Animation', 'বাটন/কার্ড চাপলে ছোট হওয়া') + '</div>';
+        h += '<div class="admin-section"><h3>🎨 App Colors</h3><p style="font-size:12px;color:#8b93a7;margin-bottom:8px;">Default রাখলে আগের কালারই থাকবে।</p>' +
+            '<div style="margin-bottom:6px;">' + col('vars.primary', 'Main (Red) Color') + col('vars.secondary', 'Secondary (Blue)') + col('vars.navActive', 'Nav Active Color') + '</div>' +
+            '<button type="button" class="btn-sm delete" id="hx-d-clearvars">Main/Nav কালার Default করুন</button></div>';
+        h += TARGETS.map(targetRow).join('');
+        h += '<div class="admin-section"><button type="button" class="btn-primary" id="hx-d-save">💾 Save for All Users</button>' +
+            '<button type="button" class="btn-sm delete" id="hx-d-reset" style="margin-top:10px;width:100%;padding:12px;">↺ সব Default এ ফিরিয়ে আনুন</button></div>';
+        container.innerHTML = h;
+        fill(container);
+
+        function upd(el) {
+            var p = el.getAttribute('data-p'), v = el.type === 'checkbox' ? el.checked : (el.type === 'range' ? Number(el.value) : el.value);
+            set(draft, p, v);
+            if (p.indexOf('colors.') === 0 && /\.(c1|c2|angle)$/.test(p)) {
+                var k = p.split('.')[1];
+                if (!draft.colors[k].mode) draft.colors[k].mode = 'grad';
+                var sel = container.querySelector('.hx-d-row[data-t="' + k + '"] select'); if (sel) sel.value = draft.colors[k].mode;
+            }
+            apply(draft); fill(container);
+        }
+        container.addEventListener('input', function (e) { if (e.target.hasAttribute && e.target.hasAttribute('data-p') && e.target.type !== 'checkbox' && e.target.tagName !== 'SELECT') upd(e.target); });
+        container.addEventListener('change', function (e) { if (e.target.hasAttribute && e.target.hasAttribute('data-p')) upd(e.target); });
+        container.querySelector('#hx-d-clearvars').addEventListener('click', function () { draft.vars = {}; apply(draft); fill(container); });
+        function persist(obj, msg) {
+            if (!currentUser || !currentUser.isAdmin) return say('শুধু অ্যাডমিন');
+            cloudSetConfig('appDesign', obj).then(function () {
+                state = merge(obj); draft = null; apply(state);
+                try { localStorage.setItem(LS, JSON.stringify(obj)); } catch (e) {}
+                say(msg);
+            }).catch(function () { say('Save ব্যর্থ হয়েছে'); });
+        }
+        container.querySelector('#hx-d-save').addEventListener('click', function () { persist(clone(draft), 'সবার জন্য Save হয়েছে ✓'); });
+        container.querySelector('#hx-d-reset').addEventListener('click', function () {
+            draft = clone(DEF); apply(draft); fill(container); persist({}, 'Default এ ফিরেছে ✓');
+            draft = merge({}); fill(container);
+        });
+    }
+
+    window.hxRenderDesignAdmin = render;
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+
+
+/* ===== push.js (merged) ===== */
+/* HuntX BD — Push notifications (add-on). ADMIN-CONTROLLED.
+   - Admin → App Control: master ON/OFF switch + title + details + "Send".
+   - When ON, every user's device (that has granted permission) shows the
+     notification. Users get a one-time permission prompt on their first tap;
+     there is no user-side toggle.
+   State lives in Firestore config/pushMessage = { value: {enabled,id,title,body,ts} }.
+   Works while app/browser is open or in background; fully-closed push needs FCM. */
+(function () {
+    'use strict';
+    // >>> Paste your Firebase Web Push key (VAPID) here — see PUSH-SETUP.md. Empty = closed-app push off.
+    var VAPID_KEY = '';
+    var LS_SEEN = 'hx_push_seen';
+    var swReg = null;
+    var state = { enabled: false };
+    var asked = false;
+    var listening = false;
+    var first = true;
+
+    function supported() { return 'Notification' in window; }
+    function say(m) { try { if (typeof toast === 'function') toast(m); } catch (e) {} }
+
+    function registerSW() {
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.register('./sw.js').then(function (r) { swReg = r; }).catch(function () {});
+    }
+
+    function showNote(title, body, id) {
+        var opts = { body: body || '', icon: 'logo.png', badge: 'logo.png', tag: 'hx-' + (id || Date.now()), vibrate: [120, 60, 120], data: { url: './' } };
+        try {
+            if (swReg && swReg.showNotification) { swReg.showNotification(title, opts); return; }
+            if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+                navigator.serviceWorker.ready.then(function (r) { r.showNotification(title, opts); }).catch(function () { try { new Notification(title, opts); } catch (e) {} });
+                return;
+            }
+        } catch (e) {}
+        try { new Notification(title, opts); } catch (e2) {}
+    }
+
+    // ---- FCM (closed-app push): get device token, store in Firestore ----
+    var fcmDone = false;
+    function loadScript(src) {
+        return new Promise(function (res, rej) {
+            var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s);
+        });
+    }
+    function enableFcm() {
+        if (fcmDone || !VAPID_KEY || !supported() || Notification.permission !== 'granted') return;
+        if (typeof firebase === 'undefined' || !('serviceWorker' in navigator)) return;
+        fcmDone = true;
+        var chain = firebase.messaging ? Promise.resolve() : loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+        chain.then(function () { return navigator.serviceWorker.ready; }).then(function (reg) {
+            return firebase.messaging().getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+        }).then(function (token) {
+            if (!token || typeof db === 'undefined' || !db) return;
+            var uid = (typeof currentUser !== 'undefined' && currentUser) ? String(currentUser.id) : '';
+            db.collection('pushTokens').doc(token.slice(-40)).set({ token: token, uid: uid, ts: Date.now(), ua: (navigator.userAgent || '').slice(0, 120) }, { merge: true });
+        }).catch(function () { fcmDone = false; });
+    }
+
+    // One-time permission request on the user's first tap (browsers require a gesture)
+    function armPermission() {
+        if (!supported() || asked) return;
+        if (Notification.permission !== 'default') return;
+        var h = function () {
+            document.removeEventListener('pointerdown', h, true);
+            if (asked || !state.enabled) return;
+            asked = true;
+            try { Notification.requestPermission().then(function () { enableFcm(); }); } catch (e) {}
+        };
+        document.addEventListener('pointerdown', h, true);
+    }
+
+    function onState(snap) {
+        var m = null;
+        if (snap && snap.exists) { var d = snap.data(); m = d.value !== undefined ? d.value : d; }
+        state = m || { enabled: false };
+        syncAdminSwitch();
+        if (!state.enabled) return;
+        armPermission();
+        enableFcm();
+        if (!state.id) return;
+        var seen = '';
+        try { seen = localStorage.getItem(LS_SEEN) || ''; } catch (e) {}
+        if (String(state.id) === seen) return;
+        try { localStorage.setItem(LS_SEEN, String(state.id)); } catch (e) {}
+        // On app open, skip messages older than 24h
+        if (first) { first = false; if (Date.now() - (Number(state.ts) || 0) > 24 * 3600 * 1000) return; }
+        first = false;
+        if (supported() && Notification.permission === 'granted') showNote(state.title || 'HuntX BD', state.body || '', state.id);
+    }
+
+    function listen() {
+        if (listening) return;
+        if (typeof firebaseReady === 'undefined' || !firebaseReady || typeof db === 'undefined' || !db) return;
+        listening = true;
+        db.collection('config').doc('pushMessage').onSnapshot(onState, function () {});
+    }
+
+    // ---- admin box (App Control) ----
+    function syncAdminSwitch() {
+        var chk = document.getElementById('hx-push-master');
+        if (chk) chk.checked = !!state.enabled;
+    }
+    function save(patch) {
+        var next = {};
+        for (var k in state) next[k] = state[k];
+        for (var p in patch) next[p] = patch[p];
+        return cloudSetConfig('pushMessage', next);
+    }
+    function injectAdminBox() {
+        var c = document.getElementById('admin-content');
+        if (!c || document.getElementById('hx-admin-push')) return;
+        if (!c.querySelector('#set-app-theme')) return;
+        var box = document.createElement('div');
+        box.id = 'hx-admin-push';
+        box.className = 'admin-section';
+        box.innerHTML =
+            '<h3>🔔 Push Notification</h3>' +
+            '<div class="hx-push-card" style="margin:0 0 12px;">' +
+                '<i class="fas fa-bell hx-ic"></i>' +
+                '<div class="hx-push-txt"><strong>পুশ নোটিফিকেশন চালু</strong><span>চালু থাকলে সবার ফোনে নোটিফিকেশন যাবে</span></div>' +
+                '<label class="hx-switch"><input type="checkbox" id="hx-push-master"><span class="hx-knob"></span></label>' +
+            '</div>' +
+            '<div class="form-group"><label>টাইটেল</label><input type="text" id="hx-push-title" placeholder="যেমন: নতুন ম্যাচ শুরু!" maxlength="60"></div>' +
+            '<div class="form-group"><label>বিস্তারিত</label><textarea id="hx-push-body" rows="3" maxlength="200" style="width:100%;padding:10px;border:2px solid #dfe6e9;border-radius:10px;font-family:inherit;" placeholder="নোটিফিকেশনের বিস্তারিত লিখুন..."></textarea></div>' +
+            '<button type="button" class="btn-primary" id="hx-push-send">🔔 Send to Everyone</button>';
+        c.insertBefore(box, c.firstChild);
+        syncAdminSwitch();
+        box.querySelector('#hx-push-master').addEventListener('change', function (e) {
+            if (!currentUser || !currentUser.isAdmin) { e.target.checked = !!state.enabled; return say('শুধু অ্যাডমিন'); }
+            var on = e.target.checked;
+            save({ enabled: on }).then(function () { say(on ? 'Push চালু হয়েছে' : 'Push বন্ধ হয়েছে'); })
+                .catch(function () { e.target.checked = !on; say('ব্যর্থ হয়েছে'); });
+        });
+        box.querySelector('#hx-push-send').addEventListener('click', function () {
+            if (!currentUser || !currentUser.isAdmin) return say('শুধু অ্যাডমিন');
+            if (!state.enabled) return say('আগে উপরের সুইচ চালু করুন');
+            var title = (box.querySelector('#hx-push-title').value || '').trim();
+            var body = (box.querySelector('#hx-push-body').value || '').trim();
+            if (!title && !body) return say('টাইটেল বা বিস্তারিত লিখুন');
+            save({ enabled: true, id: 'p' + Date.now(), title: title || 'HuntX BD', body: body, ts: Date.now() }).then(function () {
+                // queue for the server (Cloud Function) → delivers to closed apps via FCM
+                try { db.collection('pushQueue').add({ title: title || 'HuntX BD', body: body, id: 'p' + Date.now(), ts: Date.now(), status: 'pending' }); } catch (e) {}
+                say('সবার কাছে পাঠানো হয়েছে ✓');
+                box.querySelector('#hx-push-title').value = '';
+                box.querySelector('#hx-push-body').value = '';
+            }).catch(function () { say('পাঠানো ব্যর্থ'); });
+        });
+    }
+
+    function boot() {
+        registerSW();
+        var tries = 0;
+        var t = setInterval(function () {
+            listen();
+            if (listening || ++tries > 40) clearInterval(t);
+        }, 500);
+        var q = 0;
+        new MutationObserver(function () {
+            if (q) return;
+            q = setTimeout(function () { q = 0; injectAdminBox(); }, 150);
+        }).observe(document.body, { childList: true, subtree: true });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
 })();
