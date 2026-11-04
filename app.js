@@ -1748,8 +1748,8 @@ function navigateTo(page, opts = {}) {
         }
         if (page === 'top-players') loadTopPlayers();
         if (page === 'deposit') {
-            try { hxDepositPicker(true); } catch (e) {}
             renderDepositInstructions(currentDepositMethod || 'bKash');
+            try { hxDepositPicker(true); } catch (e) {}
             document.querySelectorAll('.dep-tab').forEach(t => {
                 t.classList.toggle('active', t.dataset.method === (currentDepositMethod || 'bKash'));
             });
@@ -3727,26 +3727,26 @@ function hxDepositPicker(showPicker) {
         chg.type = 'button';
         chg.id = 'deposit-change-method';
         chg.className = 'hx-dep-change';
-        chg.textContent = 'পেমেন্ট মেথড পরিবর্তন করুন';
+        chg.textContent = 'Change Payment Method';
         chg.addEventListener('click', () => hxDepositPicker(true));
         page.insertBefore(chg, box);
     }
     const list = [
-        { k: 'bKash', n: 'বিকাশ', s: 'সেন্ড মানি অথবা পেমেন্ট', img: HX_PAY_LOGOS.bKash },
-        { k: 'Nagad', n: 'নগদ', s: '', img: HX_PAY_LOGOS.Nagad }
+        { k: 'bKash', n: 'bKash', s: 'Send Money or Payment', img: HX_PAY_LOGOS.bKash },
+        { k: 'Nagad', n: 'Nagad', s: 'Send Money', img: HX_PAY_LOGOS.Nagad }
     ];
-    if (pays.Rocket && pays.Rocket.number) list.push({ k: 'Rocket', n: 'রকেট', s: '', img: '', c: '#8c3494' });
-    pick.innerHTML = '<h3>পেমেন্টের মাধ্যম নির্বাচন করুন</h3>' + list.map(m =>
+    if (pays.Rocket && pays.Rocket.number) list.push({ k: 'Rocket', n: 'Rocket', s: 'Send Money', img: '', c: '#8c3494' });
+    pick.innerHTML = '<h3>Select Payment Method</h3>' + list.map(m =>
         '<button type="button" class="hx-dep-opt" data-pm="' + m.k + '">' +
         (m.img ? '<img class="hx-dep-ic" src="' + m.img + '" alt="">' : '<span class="hx-dep-ic hx-dep-txt" style="background:' + m.c + '">R</span>') +
         '<span class="hx-dep-tx"><strong>' + m.n + '</strong>' + (m.s ? '<small>' + m.s + '</small>' : '') + '</span>' +
         '<i class="fas fa-chevron-right"></i></button>').join('') +
-        (tut ? '<button type="button" class="hx-dep-video">কিভাবে টাকা অ্যাড করবেন ভিডিওটি দেখুন</button>' : '');
-    pick.classList.toggle('hidden', !showPicker);
-    if (tabs) tabs.classList.add('hidden');
-    if (box) box.classList.toggle('hidden', showPicker);
+        (tut ? '<button type="button" class="hx-dep-video">Watch: How to Add Money</button>' : '');
+    pick.style.display = showPicker ? '' : 'none';
+    if (tabs) tabs.style.display = 'none';
+    if (box) box.style.display = showPicker ? 'none' : '';
     const chg2 = document.getElementById('deposit-change-method');
-    if (chg2) chg2.classList.toggle('hidden', showPicker);
+    if (chg2) chg2.style.display = showPicker ? 'none' : '';
 }
 
 function renderDepositInstructions(method) {
@@ -8400,12 +8400,15 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
 (function () {
     const KEY = 'huntx_known_emails';
     const readList = () => {
+        return [];
         try {
             const a = JSON.parse(localStorage.getItem(KEY) || '[]');
             return Array.isArray(a) ? a.filter(x => typeof x === 'string' && x.includes('@')) : [];
         } catch (e) { return []; }
     };
-    window.hxRememberEmail = function (email) {
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    window.hxRememberEmail = function () { /* disabled: never store or suggest emails */ };
+    const _unusedRemember = function (email) {
         try {
             const e = String(email || '').trim().toLowerCase();
             if (!e || !e.includes('@')) return;
@@ -8605,11 +8608,14 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     'use strict';
     var LS = 'hx_design_v1';
     var DEF = {
-        rgb:   { card: true, c1: '#00c8ff', c2: '#7c4dff', c3: '#ff2d95', speed: 5, thick: 1.5, logo: true, header: false, nav: false, top: false, btn: false },
+        rgb:   { all: true, cardCat: true, cardMatch: true, cardWallet: true, c1: '#00c8ff', c2: '#7c4dff', c3: '#ff2d95', speed: 5, thick: 1.5, logo: true, header: false, nav: false, top: false, btn: false, chip: true, tg: true, navglow: true },
         grade: { on: false, level: 100 },
         touch: { trail: true, press: true },
+        border: { on: true, w: 2, color: '' },
         colors: {},
-        vars: {}
+        vars: {},
+        lcolors: {},
+        lvars: {}
     };
     var TARGETS = [
         { k: 'primaryBtn', t: 'Primary Buttons', w: 'Login / Register বাটন, ম্যাচ Join বাটন, VERIFY, Support বাটন', sel: '.btn-primary, .btn-join:not(.full), .btn-verify, .home-support-btn', text: true, d: ['#1a5cff', '#5b4cdb'] },
@@ -8663,18 +8669,21 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     function merge(raw) {
         var s = clone(DEF);
         if (!raw || typeof raw !== 'object') return s;
-        ['rgb', 'grade', 'touch', 'colors', 'vars'].forEach(function (g) {
+        ['rgb', 'grade', 'touch', 'border', 'colors', 'vars', 'lcolors', 'lvars'].forEach(function (g) {
             if (raw[g] && typeof raw[g] === 'object') for (var k in raw[g]) s[g][k] = raw[g][k];
         });
+        // old single "card" switch → the three new ones
+        if (raw.rgb && raw.rgb.card === false && raw.rgb.cardCat === undefined) { s.rgb.cardCat = s.rgb.cardMatch = s.rgb.cardWallet = false; }
         return s;
     }
+    function isLight() { return !!(document.body && document.body.classList.contains('light-theme')); }
     function ok(c) { return /^#[0-9a-fA-F]{6}$/.test(c || ''); }
     function say(m) { try { if (typeof toast === 'function') toast(m); } catch (e) {} }
 
     function buildCss(d) {
         var css = '';
         TARGETS.forEach(function (t) {
-            var c = d.colors[t.k];
+            var c = (isLight() ? d.lcolors : d.colors)[t.k];
             if (!c || !c.mode) return;
             var c1 = ok(c.c1) ? c.c1 : t.d[0], c2 = ok(c.c2) ? c.c2 : t.d[1];
             var bg = c.mode === 'solid' ? c1 : 'linear-gradient(' + (Number(c.angle) || 135) + 'deg,' + c1 + ',' + c2 + ')';
@@ -8686,7 +8695,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
                 css += ts + '{color:' + c.tc + ' !important;}\n';
             }
         });
-        var v = d.vars || {};
+        var v = (isLight() ? d.lvars : d.vars) || {};
         if (ok(v.primary)) css += ':root,body,body.light-theme{--primary:' + v.primary + ' !important;--accent:' + v.primary + ' !important;}\n';
         if (ok(v.secondary)) css += ':root,body,body.light-theme{--secondary:' + v.secondary + ' !important;}\n';
         if (ok(v.navActive)) css += 'html body .nav-item.active,html body .nav-item.active i,html body .nav-item.active span{color:' + v.navActive + ' !important;}\n';
@@ -8704,12 +8713,22 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
         r.style.setProperty('--hx-grade-op', String(Math.max(0, Math.min(1.5, (Number(d.grade.level) || 0) / 100))));
         var b = document.body;
         if (!b) return;
-        b.classList.toggle('hx-no-card-light', !g.card);
-        b.classList.toggle('hx-no-logo-glow', !g.logo);
-        b.classList.toggle('hx-l-header', !!g.header);
-        b.classList.toggle('hx-l-nav', !!g.nav);
-        b.classList.toggle('hx-l-top', !!g.top);
-        b.classList.toggle('hx-l-btn', !!g.btn);
+        var A = g.all !== false;
+        b.classList.toggle('hx-no-cat-light', !(A && g.cardCat));
+        b.classList.toggle('hx-no-match-light', !(A && g.cardMatch));
+        b.classList.toggle('hx-no-wallet-light', !(A && g.cardWallet));
+        b.classList.toggle('hx-no-logo-glow', !(A && g.logo));
+        b.classList.toggle('hx-l-header', A && !!g.header);
+        b.classList.toggle('hx-l-nav', A && !!g.nav);
+        b.classList.toggle('hx-l-top', A && !!g.top);
+        b.classList.toggle('hx-l-btn', A && !!g.btn);
+        b.classList.toggle('hx-l-chip', A && !!g.chip);
+        b.classList.toggle('hx-l-tg', A && !!g.tg);
+        b.classList.toggle('hx-l-navglow', A && !!g.navglow);
+        var bd = d.border || {};
+        b.classList.toggle('hx-no-card-border', bd.on === false);
+        r.style.setProperty('--hx-cb-w', (Number(bd.w) || 2) + 'px');
+        if (ok(bd.color)) r.style.setProperty('--hx-cb-c', bd.color); else r.style.removeProperty('--hx-cb-c');
         b.classList.toggle('hx-no-grade', !d.grade.on);
         b.classList.toggle('hx-no-press', !d.touch.press);
         window.hxDesign = d;
@@ -8721,6 +8740,13 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     function boot() {
         try { var c = localStorage.getItem(LS); if (c) state = merge(JSON.parse(c)); } catch (e) {}
         apply(state);
+        var lastL = isLight();
+        try {
+            new MutationObserver(function () {
+                var L = isLight();
+                if (L !== lastL) { lastL = L; apply(draft || state); }
+            }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        } catch (e) {}
         var tries = 0;
         var t = setInterval(function () {
             if (typeof firebaseReady !== 'undefined' && firebaseReady && typeof db !== 'undefined' && db) {
@@ -8747,13 +8773,16 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     function col(path, title) {
         return '<div style="display:inline-flex;align-items:center;gap:6px;margin:0 12px 8px 0;font-size:12px;"><input type="color" data-p="' + path + '" style="width:40px;height:32px;padding:0;border:0;background:none;"> ' + title + '</div>';
     }
+    var editLight = null; // which theme's colors the admin is editing
+    function ck() { return editLight ? 'lcolors' : 'colors'; }
+    function vk() { return editLight ? 'lvars' : 'vars'; }
     function targetRow(t) {
-        var k = 'colors.' + t.k;
+        var k = ck() + '.' + t.k;
         return '<div class="admin-section hx-d-row" data-t="' + t.k + '" style="padding:12px;">' +
             '<h4 style="font-size:14px;margin-bottom:2px;">' + t.t + '</h4>' +
             '<p style="font-size:11px;color:#8b93a7;margin-bottom:6px;">' + (t.w || '') + '</p>' +
             '<p style="font-size:11px;margin-bottom:6px;">এখনকার রঙ: <b class="hx-d-cur"></b></p>' +
-            '<div class="hx-d-prev" style="height:22px;border-radius:8px;margin-bottom:8px;border:1px solid rgba(255,255,255,.15)"></div>' +
+            '<div class="hx-d-prev" style="height:22px;border-radius:8px;margin-bottom:8px;border:1px solid rgba(128,128,128,.35)"></div>' +
             '<select data-p="' + k + '.mode" style="width:100%;padding:9px;border-radius:10px;margin-bottom:8px;font-family:inherit;"><option value="">Default (আগের মতো)</option><option value="solid">Solid color</option><option value="grad">Gradient</option></select>' +
             '<div>' + col(k + '.c1', 'Color 1') + col(k + '.c2', 'Color 2 (gradient)') + '</div>' +
             '<div class="form-group" style="margin-bottom:6px;"><label>Gradient angle <b data-v="' + k + '.angle"></b>°</label><input type="range" data-p="' + k + '.angle" min="0" max="360" step="5" style="width:100%"></div>' +
@@ -8764,93 +8793,125 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     function set(o, p, v) { var ks = p.split('.'), c = o; for (var i = 0; i < ks.length - 1; i++) { if (!c[ks[i]] || typeof c[ks[i]] !== 'object') c[ks[i]] = {}; c = c[ks[i]]; } c[ks[ks.length - 1]] = v; }
 
     function fill(box) {
+        var live = (editLight === isLight());
         box.querySelectorAll('[data-p]').forEach(function (el) {
             var p = el.getAttribute('data-p'), v = get(draft, p);
             if (el.type === 'checkbox') el.checked = !!v;
             else if (el.type === 'color') {
                 if (!ok(v)) {
-                    var m = p.match(/^colors\.(\w+)\.(c1|c2|tc)$/), t = m && TARGETS.filter(function (x) { return x.k === m[1]; })[0];
-                    v = t ? (m[2] === 'c1' ? t.cur.c1 : m[2] === 'c2' ? t.cur.c2 : t.cur.tc) : '#ffffff';
-                    var vm = p.match(/^vars\.(\w+)$/);
+                    var m = p.match(/^l?colors\.(\w+)\.(c1|c2|tc)$/), t = m && TARGETS.filter(function (x) { return x.k === m[1]; })[0];
+                    if (t) { var cu = live ? t.cur : curGuess(t); v = m[2] === 'c1' ? cu.c1 : m[2] === 'c2' ? cu.c2 : cu.tc; }
+                    else v = '#ffffff';
+                    var vm = p.match(/^l?vars\.(\w+)$/);
                     if (vm) v = vm[1] === 'primary' ? '#e10600' : vm[1] === 'secondary' ? '#1a5cff' : '#ff6b6b';
+                    if (p === 'border.color') v = editLight ? '#1e2846' : '#ffffff';
                 }
                 el.value = v;
             } else el.value = (v === undefined || v === null) ? (el.type === 'range' && /angle/.test(p) ? 135 : '') : v;
         });
         box.querySelectorAll('[data-v]').forEach(function (b) { var v = get(draft, b.getAttribute('data-v')); b.textContent = (v === undefined ? (/angle/.test(b.getAttribute('data-v')) ? 135 : '') : v); });
         box.querySelectorAll('.hx-d-row').forEach(function (row) {
-            var c = draft.colors[row.getAttribute('data-t')] || {}, t = TARGETS.filter(function (x) { return x.k === row.getAttribute('data-t'); })[0];
+            var key = row.getAttribute('data-t');
+            var c = (draft[ck()] || {})[key] || {}, t = TARGETS.filter(function (x) { return x.k === key; })[0];
+            var cu = live ? t.cur : curGuess(t);
             var p = row.querySelector('.hx-d-prev');
-            var cur = row.querySelector('.hx-d-cur');
-            if (cur) cur.textContent = t.cur.grad ? t.cur.c1 + '  →  ' + t.cur.c2 : t.cur.c1;
-            if (!c.mode) p.style.background = t.cur.grad ? 'linear-gradient(135deg,' + t.cur.c1 + ',' + t.cur.c2 + ')' : t.cur.c1;
+            var curEl = row.querySelector('.hx-d-cur');
+            if (curEl) curEl.textContent = live ? (cu.grad ? cu.c1 + '  →  ' + cu.c2 : cu.c1) : '(এই মোডে ঢুকলে দেখাবে)';
+            if (!c.mode) p.style.background = cu.grad ? 'linear-gradient(135deg,' + cu.c1 + ',' + cu.c2 + ')' : cu.c1;
             else {
-                var c1 = ok(c.c1) ? c.c1 : t.cur.c1, c2 = ok(c.c2) ? c.c2 : t.cur.c2;
+                var c1 = ok(c.c1) ? c.c1 : cu.c1, c2 = ok(c.c2) ? c.c2 : cu.c2;
                 p.style.background = c.mode === 'solid' ? c1 : 'linear-gradient(' + (Number(c.angle) || 135) + 'deg,' + c1 + ',' + c2 + ')';
             }
         });
+        var tabD = box.querySelector('#hx-tab-dark'), tabL = box.querySelector('#hx-tab-light');
+        if (tabD) { tabD.style.opacity = editLight ? 0.55 : 1; tabD.style.outline = editLight ? 'none' : '2px solid #7c4dff'; }
+        if (tabL) { tabL.style.opacity = editLight ? 1 : 0.55; tabL.style.outline = editLight ? '2px solid #7c4dff' : 'none'; }
+        var note = box.querySelector('#hx-theme-note');
+        if (note) note.textContent = 'এখন ' + (editLight ? 'Light' : 'Dark') + ' মোডের রঙ এডিট করছেন · অ্যাপ এখন ' + (isLight() ? 'Light' : 'Dark') + ' মোডে আছে' + (live ? '' : ' (প্রিভিউ দেখতে App Control থেকে থিম বদলান)');
     }
+    function curGuess(t) { return editLight ? { c1: '#ffffff', c2: '#eef1f8', grad: false, tc: '#1a1d2b' } : { c1: t.d[0], c2: t.d[1], grad: true, tc: '#ffffff' }; }
 
+    var boundBox = null, saveTimer = 0;
     function render(container) {
         if (!container) return;
+        if (editLight === null) editLight = isLight();
         readCurrent();
         draft = merge(state);
-        // keep colors/vars exactly as saved (merge returns clones)
         var h = '<div class="admin-section"><h3>🎨 App Design</h3><p style="font-size:12px;color:#8b93a7;line-height:1.5;margin-bottom:6px;">এখানে যা বদলাবেন সাথে সাথে নিজে থেকে সেভ হয়ে সব ইউজারের অ্যাপে আপডেট হবে। Default রাখলে অ্যাপের আগের রঙই থাকবে। <b id="hx-d-status" style="color:#00d68f;"></b></p></div>';
         h += '<div class="admin-section"><h3>💡 RGB Lights</h3>' +
-            sw('rgb.card', 'Card RGB Light', 'ম্যাচ ও ক্যাটাগরি কার্ডের চারপাশে ঘুরন্ত আলো') +
+            sw('rgb.all', '⚡ সব RGB লাইট (Master)', 'বন্ধ করলে নিচের সবগুলো একসাথে বন্ধ') +
+            sw('rgb.cardCat', 'Category Cards Light', 'Play পেজের ক্যাটাগরি কার্ডের ঘুরন্ত আলো') +
+            sw('rgb.cardMatch', 'Match Cards Light', 'ম্যাচ কার্ডের ঘুরন্ত আলো') +
+            sw('rgb.cardWallet', 'Wallet Card Light', 'ওয়ালেট কার্ডের ঘুরন্ত আলো') +
             sw('rgb.logo', 'Logo Glow', 'উপরের লোগোর গ্লো') +
             sw('rgb.top', 'Top Screen RGB Line', 'স্ক্রিনের একদম উপরে লাইন') +
             sw('rgb.header', 'Header RGB Line', 'হেডারের নিচে লাইন') +
             sw('rgb.nav', 'Bottom Nav RGB Line', 'নিচের নেভিগেশনের উপরে লাইন') +
             sw('rgb.btn', 'Button RGB Glow', 'বাটনে রঙ বদলানো গ্লো') +
+            sw('rgb.chip', 'Balance Chip RGB', 'উপরের ব্যালেন্স বক্সে ঘুরন্ত RGB বর্ডার') +
+            sw('rgb.tg', 'Telegram Bar Shine', 'টেলিগ্রাম বারে চলমান রঙের ঝলক') +
+            sw('rgb.navglow', 'Nav Active Glow', 'নিচের মেনুতে সিলেক্টেড আইকনের গ্লো') +
             '<div style="margin:6px 0 10px;">' + col('rgb.c1', 'Light 1') + col('rgb.c2', 'Light 2') + col('rgb.c3', 'Light 3') + '</div>' +
             rng('rgb.speed', 'ঘোরার সময় (সেকেন্ড, কম = দ্রুত)', 2, 15, 0.5) +
             rng('rgb.thick', 'আলোর পুরুত্ব (px)', 1, 4, 0.5) + '</div>';
+        h += '<div class="admin-section"><h3>▢ Card Border</h3>' +
+            sw('border.on', 'Card Border Line', 'ক্যাটাগরি ও ম্যাচ কার্ডের চারপাশে চিকন লাইন (Dark/Light মোড অনুযায়ী নিজে ম্যাচ করে)') +
+            rng('border.w', 'লাইনের পুরুত্ব (px)', 1, 5, 0.5) +
+            '<div>' + col('border.color', 'নিজের রঙ দিতে চাইলে') + '</div>' +
+            '<button type="button" class="btn-sm delete" id="hx-d-bauto">Border রঙ Auto করুন (থিম অনুযায়ী)</button></div>';
         h += '<div class="admin-section"><h3>🎞️ Color Grading & Touch</h3>' +
             sw('grade.on', 'Color Grading', 'পুরো অ্যাপে রঙের লেয়ার') +
             rng('grade.level', 'Grading তীব্রতা (%)', 0, 150, 5) +
             sw('touch.trail', 'Touch Trail', 'আঙুল টানলে রঙিন আলো') +
             sw('touch.press', 'Press Animation', 'বাটন/কার্ড চাপলে ছোট হওয়া') + '</div>';
-        h += '<div class="admin-section"><h3>🎨 App Colors</h3><p style="font-size:12px;color:#8b93a7;margin-bottom:8px;">Default রাখলে আগের কালারই থাকবে।</p>' +
-            '<div style="margin-bottom:6px;">' + col('vars.primary', 'Main (Red) Color') + col('vars.secondary', 'Secondary (Blue)') + col('vars.navActive', 'Nav Active Color') + '</div>' +
-            '<button type="button" class="btn-sm delete" id="hx-d-clearvars">Main/Nav কালার Default করুন</button></div>';
+        h += '<div class="admin-section"><h3>🌗 Colors per Theme</h3><p style="font-size:12px;color:#8b93a7;line-height:1.5;margin-bottom:8px;">Dark ও Light মোডের রঙ আলাদা আলাদা সেট করতে পারবেন। ইউজারের অ্যাপ যে মোডে থাকবে, সেই মোডের রঙ কাজ করবে।</p>' +
+            '<div style="display:flex;gap:8px;margin-bottom:8px;"><button type="button" class="btn-sm" id="hx-tab-dark" style="flex:1;padding:11px;background:#1b2136;color:#fff;">🌙 Dark মোড</button><button type="button" class="btn-sm" id="hx-tab-light" style="flex:1;padding:11px;background:#f1f3f9;color:#1a1d2b;">☀ Light মোড</button></div>' +
+            '<p id="hx-theme-note" style="font-size:11px;color:#8b93a7;margin-bottom:10px;"></p>' +
+            '<div style="margin-bottom:6px;">' + col(vk() + '.primary', 'Main (Red) Color') + col(vk() + '.secondary', 'Secondary (Blue)') + col(vk() + '.navActive', 'Nav Active Color') + '</div>' +
+            '<button type="button" class="btn-sm delete" id="hx-d-clearvars">এই মোডের Main/Nav কালার Default করুন</button></div>';
         h += TARGETS.map(targetRow).join('');
         h += '<div class="admin-section"><button type="button" class="btn-primary" id="hx-d-save">💾 Save Now</button>' +
             '<button type="button" class="btn-sm delete" id="hx-d-reset" style="margin-top:10px;width:100%;padding:12px;">↺ সব Default এ ফিরিয়ে আনুন</button></div>';
         container.innerHTML = h;
         fill(container);
+        if (boundBox !== container) { boundBox = container; bind(container); }
+    }
 
+    function persist(container, obj, msg) {
+        var st = container.querySelector('#hx-d-status');
+        if (!currentUser || !currentUser.isAdmin) return say('শুধু অ্যাডমিন');
+        cloudSetConfig('appDesign', obj).then(function () {
+            state = merge(obj);
+            try { localStorage.setItem(LS, JSON.stringify(obj)); } catch (e) {}
+            var s2 = container.querySelector('#hx-d-status'); if (s2) s2.textContent = '✓ সেভ হয়েছে';
+            if (msg) say(msg);
+        }).catch(function () { var s3 = container.querySelector('#hx-d-status'); if (s3) s3.textContent = ''; say('Save ব্যর্থ হয়েছে'); });
+    }
+    function bind(container) {
         function upd(el) {
+            if (!draft) draft = merge(state);
             var p = el.getAttribute('data-p'), v = el.type === 'checkbox' ? el.checked : (el.type === 'range' ? Number(el.value) : el.value);
             set(draft, p, v);
-            if (p.indexOf('colors.') === 0 && /\.(c1|c2|angle)$/.test(p)) {
-                var k = p.split('.')[1];
-                if (!draft.colors[k].mode) draft.colors[k].mode = 'grad';
-                var sel = container.querySelector('.hx-d-row[data-t="' + k + '"] select'); if (sel) sel.value = draft.colors[k].mode;
+            var m = p.match(/^(l?colors)\.(\w+)\.(c1|c2|angle)$/);
+            if (m) {
+                var cc = draft[m[1]][m[2]];
+                if (!cc.mode) cc.mode = 'grad';
+                var sel = container.querySelector('.hx-d-row[data-t="' + m[2] + '"] select'); if (sel) sel.value = cc.mode;
             }
             apply(draft); fill(container);
             var st = container.querySelector('#hx-d-status'); if (st) st.textContent = 'সেভ হচ্ছে...';
             clearTimeout(saveTimer);
-            saveTimer = setTimeout(function () { persist(clone(draft), null); }, 500);
+            saveTimer = setTimeout(function () { persist(container, clone(draft), null); }, 500);
         }
-        var saveTimer = 0;
-        container.addEventListener('input', function (e) { if (e.target.hasAttribute && e.target.hasAttribute('data-p') && e.target.type !== 'checkbox' && e.target.tagName !== 'SELECT') upd(e.target); });
+        container.addEventListener('input', function (e) { var t = e.target; if (t.hasAttribute && t.hasAttribute('data-p') && t.type !== 'checkbox' && t.tagName !== 'SELECT') upd(t); });
         container.addEventListener('change', function (e) { if (e.target.hasAttribute && e.target.hasAttribute('data-p')) upd(e.target); });
-        container.querySelector('#hx-d-clearvars').addEventListener('click', function () { draft.vars = {}; apply(draft); fill(container); });
-        function persist(obj, msg) {
-            var st = container.querySelector('#hx-d-status');
-            if (!currentUser || !currentUser.isAdmin) return say('শুধু অ্যাডমিন');
-            cloudSetConfig('appDesign', obj).then(function () {
-                state = merge(obj);
-                try { localStorage.setItem(LS, JSON.stringify(obj)); } catch (e) {}
-                if (st) st.textContent = '✓ সেভ হয়েছে';
-                if (msg) say(msg);
-            }).catch(function () { if (st) st.textContent = ''; say('Save ব্যর্থ হয়েছে'); });
-        }
-        container.querySelector('#hx-d-save').addEventListener('click', function () { persist(clone(draft), 'সবার জন্য Save হয়েছে ✓'); });
-        container.querySelector('#hx-d-reset').addEventListener('click', function () {
-            draft = merge({}); readCurrent(); apply(draft); fill(container); persist({}, 'Default এ ফিরেছে ✓');
+        container.addEventListener('click', function (e) {
+            var id = e.target && e.target.id;
+            if (id === 'hx-tab-dark' || id === 'hx-tab-light') { editLight = (id === 'hx-tab-light'); render(container); return; }
+            if (id === 'hx-d-clearvars') { draft[vk()] = {}; apply(draft); fill(container); clearTimeout(saveTimer); saveTimer = setTimeout(function () { persist(container, clone(draft), null); }, 300); return; }
+            if (id === 'hx-d-bauto') { draft.border.color = ''; apply(draft); fill(container); persist(container, clone(draft), 'Border Auto হয়েছে ✓'); return; }
+            if (id === 'hx-d-save') { persist(container, clone(draft), 'সবার জন্য Save হয়েছে ✓'); return; }
+            if (id === 'hx-d-reset') { draft = merge({}); readCurrent(); apply(draft); render(container); persist(container, {}, 'Default এ ফিরেছে ✓'); }
         });
     }
 
