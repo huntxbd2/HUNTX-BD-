@@ -4725,7 +4725,7 @@ button, .nav-item, .category-card, .match-card, .menu-item, .tab, .tx-tab, .noti
 @keyframes hxPop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* ---------- Admin-controlled switches (App Design) ---------- */
-body.hx-no-card-light .category-card::after, body.hx-no-card-light .match-card::after, body.hx-no-card-light .wallet-hero-card::after { display: none; }
+body.hx-no-cat-light .category-card::after, body.hx-no-match-light .match-card::after, body.hx-no-wallet-light .wallet-hero-card::after { display: none; }
 body.hx-no-logo-glow .app-top-logo { animation: none; box-shadow: none; }
 body.hx-no-grade #hx-grade { display: none; }
 body.hx-no-press .hx-press { transform: none !important; filter: none; }
@@ -4763,3 +4763,39 @@ body.hx-l-btn .btn-primary, body.hx-l-btn .btn-join:not(.full), body.hx-l-btn .b
 .hx-dep-opt > i { color: #6b7285; font-size: 13px; }
 .hx-dep-video { display: block; width: 100%; margin-top: 14px; padding: 16px; border: 0; border-radius: 14px; background: #fde4ec; color: #d81b60; font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; }
 .hx-dep-change { display: block; margin: 4px 14px 8px auto; background: none; border: 0; color: #ff6b6b; font-size: 12px; font-family: inherit; cursor: pointer; }
+
+/* ---------- More RGB (admin switchable) ---------- */
+body.hx-l-chip .app-top-balance { position: relative; }
+body.hx-l-chip .app-top-balance::after {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none;
+    background: conic-gradient(from var(--hx-hue), transparent 0%, transparent 50%, var(--hx-c1,#00c8ff) 70%, var(--hx-c2,#7c4dff) 85%, var(--hx-c3,#ff2d95) 95%, transparent 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: hxHue var(--hx-spd, 5s) linear infinite;
+}
+body.hx-l-tg #home-telegram-bar { position: relative; overflow: hidden; }
+body.hx-l-tg #home-telegram-bar::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -50%; pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.35), transparent);
+    animation: hxShine 3.2s ease-in-out infinite;
+}
+@keyframes hxShine { to { left: 120%; } }
+body.hx-l-navglow .nav-item.active i { filter: drop-shadow(0 0 6px var(--hx-c1,#00c8ff)) drop-shadow(0 0 10px var(--hx-c3,#ff2d95)); }
+@media (prefers-reduced-motion: reduce) { body.hx-l-chip .app-top-balance::after, body.hx-l-tg #home-telegram-bar::after { animation: none !important; } }
+
+/* ---------- Thin card border — follows Dark / Light theme automatically ---------- */
+.category-card, .match-card {
+    outline: var(--hx-cb-w, 2px) solid var(--hx-cb-c, rgba(255,255,255,0.18));
+    outline-offset: calc(-1 * var(--hx-cb-w, 2px));
+}
+body.light-theme .category-card, body.light-theme .match-card {
+    outline-color: var(--hx-cb-c, rgba(30,40,70,0.30));
+}
+body.hx-no-card-border .category-card, body.hx-no-card-border .match-card { outline: none; }
+
+/* ---------- Light-theme variants of the add-on UI ---------- */
+body.light-theme #hx-yn .hx-yn-box { background: #ffffff; color: #1a1d2b; border-color: rgba(30,40,70,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
+body.light-theme #hx-yn button { color: #3a56d4; }
+body.light-theme #hx-yn button[data-v="1"] { color: #fff; }
+body.light-theme .hx-push-card { color: #1a1d2b; background: linear-gradient(145deg, rgba(124,77,255,0.12), rgba(26,92,255,0.06)); }
+body.light-theme .hx-push-card .hx-push-txt span { color: #5b6378; }
+body.light-theme .hx-switch .hx-knob { background: rgba(30,40,70,0.22); }

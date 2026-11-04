@@ -114,20 +114,20 @@
                 <p>Free Fire Tournament App</p>
             </div>
             <div class="auth-card">
-                <h2>লগইন করুন</h2>
+                <h2>Login</h2>
                 <form id="login-form">
                     <div class="input-group">
                         <i class="fas fa-user"></i>
-                        <input type="text" id="login-username" placeholder="ইউজারনেম" required autocomplete="username">
+                        <input type="text" id="login-username" placeholder="Username" required autocomplete="username">
                     </div>
                     <div class="input-group">
                         <i class="fas fa-lock"></i>
-                        <input type="password" id="login-password" placeholder="পাসওয়ার্ড" required autocomplete="current-password">
+                        <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
                     </div>
-                    <button type="submit" class="btn-primary animated-gradient-border">লগইন</button>
+                    <button type="submit" class="btn-primary animated-gradient-border">Login</button>
                 </form>
-                <p class="auth-switch" style="margin-top:12px;"><a href="#" id="show-forgot">পাসওয়ার্ড ভুলে গেছেন?</a></p>
-                <p class="auth-switch">অ্যাকাউন্ট নেই? <a href="#" id="show-register">রেজিস্টার করুন</a></p>
+                <p class="auth-switch" style="margin-top:12px;"><a href="#" id="show-forgot">Forgot password?</a></p>
+                <p class="auth-switch">Don't have an account? <a href="#" id="show-register">Register</a></p>
             </div>
         </div>
 
@@ -138,34 +138,34 @@
                     <img src="logo.png" alt="HuntX BD" class="logo-img">
                 </div>
                 <h1>HuntX BD</h1>
-                <p>পাসওয়ার্ড রিসেট</p>
+                <p>Password Reset</p>
             </div>
             <div class="auth-card">
                 <h2>Forgot Password</h2>
                 <div id="forgot-step1">
                     <div class="input-group">
                         <i class="fas fa-user"></i>
-                        <input type="text" id="forgot-username" placeholder="ইউজারনেম">
+                        <input type="text" id="forgot-username" placeholder="Username">
                     </div>
                     <div class="input-group">
                         <i class="fas fa-envelope"></i>
-                        <input type="email" id="forgot-email" placeholder="রেজিস্টার করা ইমেইল">
+                        <input type="email" id="forgot-email" placeholder="Registered email">
                     </div>
-                    <button type="button" class="btn-primary" id="btn-send-otp">কোড পাঠান</button>
+                    <button type="button" class="btn-primary" id="btn-send-otp">Send Code</button>
                 </div>
                 <div id="forgot-step2" class="hidden">
-                    <p style="font-size:13px;color:#636e72;margin-bottom:12px;text-align:center;">আপনার ইমেইলে কোড পাঠানো হয়েছে (ডেমোতে নিচে দেখানো হবে)</p>
+                    <p style="font-size:13px;color:#636e72;margin-bottom:12px;text-align:center;">A code has been sent to your email (shown below in demo)</p>
                     <div class="input-group">
                         <i class="fas fa-key"></i>
-                        <input type="text" id="forgot-otp" placeholder="৬ ডিজিট কোড">
+                        <input type="text" id="forgot-otp" placeholder="6-digit code">
                     </div>
                     <div class="input-group">
                         <i class="fas fa-lock"></i>
-                        <input type="password" id="forgot-newpass" placeholder="নতুন পাসওয়ার্ড">
+                        <input type="password" id="forgot-newpass" placeholder="New password">
                     </div>
-                    <button type="button" class="btn-primary" id="btn-reset-pass">পাসওয়ার্ড রিসেট করুন</button>
+                    <button type="button" class="btn-primary" id="btn-reset-pass">Reset Password</button>
                 </div>
-                <p class="auth-switch"><a href="#" id="show-login-from-forgot">লগইনে ফিরে যান</a></p>
+                <p class="auth-switch"><a href="#" id="show-login-from-forgot">Back to Login</a></p>
             </div>
         </div>
 
@@ -176,30 +176,30 @@
                     <img src="logo.png" alt="HuntX BD" class="logo-img">
                 </div>
                 <h1>HuntX BD</h1>
-                <p>নতুন অ্যাকাউন্ট তৈরি করুন</p>
+                <p>Create a new account</p>
             </div>
             <div class="auth-card">
-                <h2>রেজিস্ট্রেশন</h2>
+                <h2>Registration</h2>
                 <form id="register-form">
                     <div class="input-group">
                         <i class="fas fa-user"></i>
-                        <input type="text" id="reg-username" placeholder="ইউজারনেম" required minlength="3" autocomplete="username">
+                        <input type="text" id="reg-username" placeholder="Username" required minlength="3" autocomplete="username">
                     </div>
                     <div class="input-group">
                         <i class="fas fa-envelope"></i>
-                        <input type="email" id="reg-email" name="email" placeholder="ইমেইল (Gmail)" required autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
+                        <input type="email" id="reg-email" name="email" placeholder="Email (Gmail)" required autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
                     </div>
                     <div class="input-group">
                         <i class="fas fa-phone"></i>
-                        <input type="tel" id="reg-phone" placeholder="মোবাইল নম্বর (01XXXXXXXXX)" required pattern="01[3-9][0-9]{8}">
+                        <input type="tel" id="reg-phone" placeholder="Mobile Number (01XXXXXXXXX)" required pattern="01[3-9][0-9]{8}">
                     </div>
                     <div class="input-group">
                         <i class="fas fa-lock"></i>
-                        <input type="password" id="reg-password" placeholder="পাসওয়ার্ড" required minlength="4" autocomplete="new-password">
+                        <input type="password" id="reg-password" placeholder="Password" required minlength="4" autocomplete="new-password">
                     </div>
-                    <button type="submit" class="btn-primary animated-gradient-border">রেজিস্টার</button>
+                    <button type="submit" class="btn-primary animated-gradient-border">Register</button>
                 </form>
-                <p class="auth-switch">অ্যাকাউন্ট আছে? <a href="#" id="show-login">লগইন করুন</a></p>
+                <p class="auth-switch">Already have an account? <a href="#" id="show-login">Login</a></p>
             </div>
         </div>
     </div>
@@ -507,7 +507,7 @@
                     <button type="button" class="dep-tab" data-method="Nagad">Nagad</button>
                 </div>
                 <div id="deposit-method-box" class="deposit-box bkash-box">
-                    <h3>ট্রানজেকশন আইডি দিন</h3>
+                    <h3>Enter Transaction ID</h3>
                     <p style="font-size:12px;color:#8b93a7;margin:0 0 10px;line-height:1.5;">শুধু ট্রানজেকশন আইডি দিন। টাকার পরিমাণ অ্যাডমিন ট্রানজেকশন দেখে নিজে সেট করবেন।</p>
                     <input type="text" id="deposit-trx" placeholder="ট্রানজেকশন আইডি দিন">
                     <div id="deposit-instructions" class="deposit-instructions"></div>
