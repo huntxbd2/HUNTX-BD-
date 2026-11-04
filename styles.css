@@ -4784,11 +4784,11 @@ body.hx-l-navglow .nav-item.active i { filter: drop-shadow(0 0 6px var(--hx-c1,#
 
 /* ---------- Thin card border — follows Dark / Light theme automatically ---------- */
 .category-card, .match-card {
-    outline: var(--hx-cb-w, 2px) solid var(--hx-cb-c, rgba(255,255,255,0.18));
-    outline-offset: calc(-1 * var(--hx-cb-w, 2px));
+    outline: var(--hx-cb-w, 3px) solid var(--hx-cb-c, rgba(255,255,255,0.26));
+    outline-offset: calc(-1 * var(--hx-cb-w, 3px));
 }
 body.light-theme .category-card, body.light-theme .match-card {
-    outline-color: var(--hx-cb-c, rgba(30,40,70,0.30));
+    outline-color: var(--hx-cb-c, rgba(40,55,85,0.55));
 }
 body.hx-no-card-border .category-card, body.hx-no-card-border .match-card { outline: none; }
 
@@ -4799,3 +4799,51 @@ body.light-theme #hx-yn button[data-v="1"] { color: #fff; }
 body.light-theme .hx-push-card { color: #1a1d2b; background: linear-gradient(145deg, rgba(124,77,255,0.12), rgba(26,92,255,0.06)); }
 body.light-theme .hx-push-card .hx-push-txt span { color: #5b6378; }
 body.light-theme .hx-switch .hx-knob { background: rgba(30,40,70,0.22); }
+
+/* ---------- Category cards: a little narrower (side space) ---------- */
+.match-categories { padding: 0 12px; gap: 16px; }
+
+/* ---------- Glass (see-through) header ---------- */
+html body:not(.light-theme) .app-top-header {
+    background: rgba(10, 14, 26, 0.55) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+}
+html body.light-theme .app-top-header {
+    background: rgba(255, 255, 255, 0.55) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
+    border-bottom: 1px solid rgba(30,40,70,0.10) !important;
+}
+
+/* ---------- Deposit box: readable text + nicer VERIFY button ---------- */
+#deposit-method-box h3, #deposit-method-box p, #deposit-method-box .deposit-instructions, #deposit-method-box li { color: #ffffff !important; }
+#deposit-method-box p { opacity: 0.92; }
+html body #deposit-method-box .btn-verify {
+    background: #ffffff !important; color: #d81b60 !important; font-weight: 800; letter-spacing: 1.2px;
+    border: 0 !important; border-radius: 14px; box-shadow: 0 6px 18px rgba(0,0,0,0.28) !important; text-shadow: none;
+}
+html body #deposit-method-box.nagad-box .btn-verify { color: #e8740c !important; }
+html body #deposit-method-box .btn-verify:active { transform: scale(0.97); }
+
+/* ---------- Light theme: make everything readable (dark, rich text) ---------- */
+body.light-theme .wallet-hero-amount, body.light-theme #wallet-balance { color: #ffffff !important; }
+body.light-theme .split-label { color: #5b6378 !important; }
+body.light-theme .split-label.winning, body.light-theme #wallet-winning { color: #0a9b55 !important; }
+body.light-theme #wallet-deposited, body.light-theme .wallet-quick-card strong, body.light-theme .wallet-learn-item strong { color: #1a1d2b !important; }
+body.light-theme .wallet-quick-card p, body.light-theme .wallet-quick-card span, body.light-theme .wallet-learn-item p { color: #5b6378 !important; }
+body.light-theme .pay-box.bkash { color: #c2185b !important; }
+body.light-theme .pay-box.nagad { color: #c2610a !important; }
+body.light-theme .tx-tab, body.light-theme .notif-tab, body.light-theme .notif-filter { color: #4a5568; }
+body.light-theme .tx-tab.active, body.light-theme .notif-tab.active, body.light-theme .notif-filter.active { color: #ffffff !important; }
+body.light-theme #nav-balance-text { color: #c62828 !important; }
+body.light-theme .section-title, body.light-theme .page h2 { color: #1a1d2b; }
+/* inline-styled text written for dark mode → readable on light */
+body.light-theme [style*="color:#e8ecf8"], body.light-theme [style*="color:#f0f2f8"], body.light-theme [style*="color:#c5cbe0"],
+body.light-theme [style*="color:#c5cad8"], body.light-theme [style*="color:#a0a8bc"], body.light-theme [style*="color:#9aa3b8"] { color: #1a1d2b !important; }
+body.light-theme [style*="color:#8b93a7"] { color: #5b6378 !important; }
+body.light-theme [style*="color:#00d68f"] { color: #0a9b55 !important; }
+body.light-theme [style*="color:#ffb84d"], body.light-theme [style*="color:#fdcb6e"] { color: #b86e00 !important; }
+body.light-theme [style*="color:#5b9dff"], body.light-theme [style*="color:#7eb0ff"] { color: #1a5cff !important; }
+body.light-theme [style*="color:#ff6b6b"] { color: #d32f2f !important; }
+body.light-theme [style*="color:#a78bfa"] { color: #6d4ae0 !important; }
+body.light-theme .btn-primary, body.light-theme .btn-primary * { text-shadow: none; }

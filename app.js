@@ -8611,7 +8611,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
         rgb:   { all: true, cardCat: true, cardMatch: true, cardWallet: true, c1: '#00c8ff', c2: '#7c4dff', c3: '#ff2d95', speed: 5, thick: 1.5, logo: true, header: false, nav: false, top: false, btn: false, chip: true, tg: true, navglow: true },
         grade: { on: false, level: 100 },
         touch: { trail: true, press: true },
-        border: { on: true, w: 2, color: '' },
+        border: { on: true, w: 3, color: '' },
         colors: {},
         vars: {},
         lcolors: {},
@@ -8672,6 +8672,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
         ['rgb', 'grade', 'touch', 'border', 'colors', 'vars', 'lcolors', 'lvars'].forEach(function (g) {
             if (raw[g] && typeof raw[g] === 'object') for (var k in raw[g]) s[g][k] = raw[g][k];
         });
+        if (s.border && Number(s.border.w) === 2) s.border.w = 3; // old default → new thicker default
         // old single "card" switch → the three new ones
         if (raw.rgb && raw.rgb.card === false && raw.rgb.cardCat === undefined) { s.rgb.cardCat = s.rgb.cardMatch = s.rgb.cardWallet = false; }
         return s;
@@ -8687,18 +8688,19 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
             if (!c || !c.mode) return;
             var c1 = ok(c.c1) ? c.c1 : t.d[0], c2 = ok(c.c2) ? c.c2 : t.d[1];
             var bg = c.mode === 'solid' ? c1 : 'linear-gradient(' + (Number(c.angle) || 135) + 'deg,' + c1 + ',' + c2 + ')';
-            var sel = t.sel.split(',').map(function (x) { return 'html body ' + x.trim(); }).join(',');
+            var pre = isLight() ? 'html body.light-theme ' : 'html body:not(.light-theme) ';
+            var sel = t.sel.split(',').map(function (x) { return pre + x.trim(); }).join(',');
             if (t.k === 'page') sel = 'html body, html';
             css += sel + '{background:' + bg + ' !important;' + (t.k === 'page' ? 'background-attachment:fixed !important;' : '') + '}\n';
             if (t.text && c.tcOn && ok(c.tc)) {
-                var ts = t.sel.split(',').map(function (x) { x = x.trim(); return 'html body ' + x + ',html body ' + x + ' *'; }).join(',');
+                var ts = t.sel.split(',').map(function (x) { x = x.trim(); return pre + x + ',' + pre + x + ' *'; }).join(',');
                 css += ts + '{color:' + c.tc + ' !important;}\n';
             }
         });
         var v = (isLight() ? d.lvars : d.vars) || {};
         if (ok(v.primary)) css += ':root,body,body.light-theme{--primary:' + v.primary + ' !important;--accent:' + v.primary + ' !important;}\n';
         if (ok(v.secondary)) css += ':root,body,body.light-theme{--secondary:' + v.secondary + ' !important;}\n';
-        if (ok(v.navActive)) css += 'html body .nav-item.active,html body .nav-item.active i,html body .nav-item.active span{color:' + v.navActive + ' !important;}\n';
+        if (ok(v.navActive)) { var np = isLight() ? 'html body.light-theme ' : 'html body:not(.light-theme) '; css += np + '.nav-item.active,' + np + '.nav-item.active i,' + np + '.nav-item.active span{color:' + v.navActive + ' !important;}\n'; }
         return css;
     }
 
@@ -8727,7 +8729,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
         b.classList.toggle('hx-l-navglow', A && !!g.navglow);
         var bd = d.border || {};
         b.classList.toggle('hx-no-card-border', bd.on === false);
-        r.style.setProperty('--hx-cb-w', (Number(bd.w) || 2) + 'px');
+        r.style.setProperty('--hx-cb-w', (Number(bd.w) || 3) + 'px');
         if (ok(bd.color)) r.style.setProperty('--hx-cb-c', bd.color); else r.style.removeProperty('--hx-cb-c');
         b.classList.toggle('hx-no-grade', !d.grade.on);
         b.classList.toggle('hx-no-press', !d.touch.press);
