@@ -2708,10 +2708,14 @@ function joinMatch(matchId) {
     if (filled + slotsNeededPreview > (match.maxPlayers || 48)) return toast('ম্যাচ ফুল! পর্যাপ্ত স্লট নেই।');
 
     const matchType = (match.entryType || 'Solo').toLowerCase();
-    const allowDuo = !isProLeague && (matchType.includes('duo') || matchType.includes('both') || matchType.includes('solo/duo'));
+    const isSquadMatch = !isProLeague && matchType.includes('squad');
+    // Solo match → Solo only · Duo match → Solo/Duo · Squad match → Solo/Duo/Squad (Pro League untouched)
+    const allowDuo = !isProLeague && (matchType.includes('duo') || matchType.includes('both') || isSquadMatch);
+    const allowSquad = isSquadMatch;
     const duoOnly = !isProLeague && matchType.includes('duo') && !matchType.includes('solo');
     let selectedType = isProLeague ? 'Squad' : null; // Solo/Duo must be chosen first
-    const allowSolo = !duoOnly;
+    const allowSolo = true;
+    const typeListTxt = () => [allowSolo ? 'Solo' : '', allowDuo ? 'Duo' : '', allowSquad ? 'Squad' : ''].filter(Boolean).join(' / ');
     let currentFee = baseFee;
 
     // Pro League: Team Name + IGL + WhatsApp + optional logo
@@ -2735,8 +2739,11 @@ function joinMatch(matchId) {
 
     function renderJoinUI() {
         const isDuo = allowDuo && selectedType === 'Duo';
+        const isSquad = allowSquad && selectedType === 'Squad';
         if (isProLeague && seriesId && (alreadySeriesPaid || userHasSeriesEntry())) {
             currentFee = 0;
+        } else if (!isProLeague && isSquad) {
+            currentFee = baseFee * 4;
         } else if (!isProLeague && isDuo) {
             currentFee = baseFee * 2;
         } else {
@@ -2776,7 +2783,15 @@ function joinMatch(matchId) {
                 ${groupSelect}
 `;
         } else if (!selectedType) {
-            namesHtml = `<p style="font-size:13px;color:#ffb84d;text-align:center;margin:14px 0 4px;">প্রথমে উপরে ${allowSolo && allowDuo ? 'Solo অথবা Duo' : (allowDuo ? 'Duo' : 'Solo')} সিলেক্ট করুন, তারপর নাম দেওয়ার অপশন আসবে।</p>`;
+            namesHtml = `<p style="font-size:13px;color:#ffb84d;text-align:center;margin:14px 0 4px;">প্রথমে উপরে ${typeListTxt()} সিলেক্ট করুন, তারপর নাম দেওয়ার অপশন আসবে।</p>`;
+        } else if (isSquad) {
+            namesHtml = `
+            <div class="form-group" style="margin-top:14px;">
+                <input type="text" id="join-player1" placeholder="Player 1 Name" maxlength="30" style="margin-bottom:10px;">
+                <input type="text" id="join-player2" placeholder="Player 2 Name" maxlength="30" style="margin-bottom:10px;">
+                <input type="text" id="join-player3" placeholder="Player 3 Name" maxlength="30" style="margin-bottom:10px;">
+                <input type="text" id="join-player4" placeholder="Player 4 Name" maxlength="30">
+            </div>`;
         } else if (isDuo) {
             namesHtml = `
             <div class="form-group" style="margin-top:14px;">
@@ -2797,14 +2812,15 @@ function joinMatch(matchId) {
                 <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px;">
                     ${allowSolo ? `<button type="button" id="btn-solo" class="btn-sm" style="padding:8px 22px;border-radius:20px;background:${selectedType === 'Solo' ? '#e10600' : '#333'};color:#fff;font-weight:600;">Solo</button>` : ''}
                     ${allowDuo ? `<button type="button" id="btn-duo" class="btn-sm" style="padding:8px 22px;border-radius:20px;background:${selectedType === 'Duo' ? '#e10600' : '#333'};color:#fff;font-weight:600;">Duo</button>` : ''}
+                    ${allowSquad ? `<button type="button" id="btn-squad" class="btn-sm" style="padding:8px 22px;border-radius:20px;background:${selectedType === 'Squad' ? '#e10600' : '#333'};color:#fff;font-weight:600;">Squad</button>` : ''}
                 </div>`;
 
         showModal('Join Match', `
             <div style="text-align:left;">
                 <h3 style="font-size:16px;margin-bottom:4px;">${match.title}</h3>
-                <p style="font-size:13px;color:#8b93a7;margin-bottom:12px;">Entry Fee: <strong style="color:#ff6b6b;">${currentFee} TK</strong>${isProLeague ? ` <span style="color:#5b9dff;">(${(match.maps && match.maps.length) ? match.maps.length : seriesTotal} Maps)</span>` : (isDuo ? ' <span style="color:#ffb84d;">(Duo = 2×)</span>' : '')} | Balance: ${formatMoney(currentUser.balance || 0)}</p>
+                <p style="font-size:13px;color:#8b93a7;margin-bottom:12px;">Entry Fee: <strong style="color:#ff6b6b;">${currentFee} TK</strong>${isProLeague ? ` <span style="color:#5b9dff;">(${(match.maps && match.maps.length) ? match.maps.length : seriesTotal} Maps)</span>` : (isSquad ? ' <span style="color:#ffb84d;">(Squad = 4×)</span>' : (isDuo ? ' <span style="color:#ffb84d;">(Duo = 2×)</span>' : ''))} | Balance: ${formatMoney(currentUser.balance || 0)}</p>
                 ${currentFee === 0 && isProLeague ? '<p style="font-size:12px;color:#00d68f;margin-bottom:8px;">সিরিজ এন্ট্রি আগে দেওয়া আছে — এই ম্যাচ ফ্রি জয়েন</p>' : ''}
-                ${!isProLeague && allowDuo && allowSolo ? `<p style="font-size:12px;color:#8b93a7;margin:-6px 0 10px;">Solo = ${baseFee} TK · Duo = ${baseFee * 2} TK</p>` : ''}
+                ${!isProLeague && allowDuo ? `<p style="font-size:12px;color:#8b93a7;margin:-6px 0 10px;">Solo = ${baseFee} TK · Duo = ${baseFee * 2} TK${allowSquad ? ' · Squad = ' + (baseFee * 4) + ' TK' : ''}</p>` : ''}
                 ${typeButtons}
                 ${namesHtml}
             </div>
@@ -2820,10 +2836,12 @@ function joinMatch(matchId) {
                     }
 
                     if (!isProLeague && !selectedType) {
-                        toast('প্রথমে ' + (allowSolo && allowDuo ? 'Solo অথবা Duo' : (allowDuo ? 'Duo' : 'Solo')) + ' সিলেক্ট করুন');
+                        toast('প্রথমে ' + typeListTxt() + ' সিলেক্ট করুন');
                         return;
                     }
                     const isDuoNow = allowDuo && selectedType === 'Duo';
+                    const isSquadNow = allowSquad && selectedType === 'Squad';
+                    let p3 = '', p4 = '';
                     const seriesAlready = isProLeague && seriesId && userHasSeriesEntry();
                     let p1 = '', p2 = '', roles = {};
                     let inGameName = '';
@@ -2858,22 +2876,30 @@ function joinMatch(matchId) {
                             toast('Player 1 এর নাম দিতে হবে!');
                             return;
                         }
-                        if (isDuoNow && (!p2 || p2.length < 2)) {
+                        if ((isDuoNow || isSquadNow) && (!p2 || p2.length < 2)) {
                             toast('Player 2 এর নাম দিতে হবে!');
                             return;
                         }
-                        inGameName = isDuoNow ? (p1 + ' + ' + p2) : p1;
+                        if (isSquadNow) {
+                            p3 = ($('#join-player3')?.value || '').trim();
+                            p4 = ($('#join-player4')?.value || '').trim();
+                            if (!p3 || p3.length < 2) { toast('Player 3 এর নাম দিতে হবে!'); return; }
+                            if (!p4 || p4.length < 2) { toast('Player 4 এর নাম দিতে হবে!'); return; }
+                        }
+                        inGameName = isSquadNow ? [p1, p2, p3, p4].join(' + ') : (isDuoNow ? (p1 + ' + ' + p2) : p1);
                     }
 
                     // Solo = 1x, Duo = 2x entry fee; Pro series already paid = 0
                     if (seriesAlready) {
                         currentFee = 0;
+                    } else if (!isProLeague && isSquadNow) {
+                        currentFee = baseFee * 4;
                     } else if (!isProLeague && isDuoNow) {
                         currentFee = baseFee * 2;
                     } else {
                         currentFee = baseFee;
                     }
-                    const slotsNeeded = isProLeague ? 1 : (isDuoNow ? 2 : 1);
+                    const slotsNeeded = isProLeague ? 1 : (isSquadNow ? 4 : (isDuoNow ? 2 : 1));
 
                     _joiningInProgress = true;
                     _joinReserved.add(reserveKey);
@@ -2989,7 +3015,9 @@ function joinMatch(matchId) {
                             teamLogo: '',
                             group: selectedGroup,
                             player1: p1,
-                            player2: isDuoNow ? p2 : '',
+                            player2: (isDuoNow || isSquadNow) ? p2 : '',
+                            player3: isSquadNow ? p3 : '',
+                            player4: isSquadNow ? p4 : '',
                             roles: isProLeague ? roles : null,
                             type: selectedType,
                             slots: slotsNeeded,
@@ -3062,6 +3090,10 @@ function joinMatch(matchId) {
             });
             $('#btn-duo')?.addEventListener('click', () => {
                 selectedType = 'Duo';
+                renderJoinUI();
+            });
+            $('#btn-squad')?.addEventListener('click', () => {
+                selectedType = 'Squad';
                 renderJoinUI();
             });
         }, 50);
@@ -8548,7 +8580,6 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     else init();
 })();
 
-
 /* ===== fx.js (merged) ===== */
 /* HuntX BD — FX layer: RGB lights, color grading overlay, click + touch animations.
    Add-on only. Touches no app logic. */
@@ -8620,7 +8651,6 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
 })();
-
 
 /* ===== design.js (merged) ===== */
 /* HuntX BD — App Design (admin-controlled look & feel).
@@ -8944,7 +8974,6 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 
-
 /* ===== features.js (merged) ===== */
 /* HuntX BD — Optional App Features (ALL OFF by default; admin switches them on).
    Admin → App Features. Saved to Firestore config/appFeatures → applies to all users. */
@@ -9129,7 +9158,6 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
-
 
 /* ===== push.js (merged) ===== */
 /* HuntX BD — Push notifications (add-on). ADMIN-CONTROLLED.

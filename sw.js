@@ -1,5 +1,5 @@
 /* HuntX BD — service worker (GitHub Pages / subdirectory safe) */
-const CACHE = 'huntx-shell-v30';
+const CACHE = 'huntx-shell-v31';
 // Relative paths — resolve from SW location (works on /huntxbd/ and root)
 const SHELL = [
   './',
