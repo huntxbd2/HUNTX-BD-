@@ -2710,7 +2710,8 @@ function joinMatch(matchId) {
     const matchType = (match.entryType || 'Solo').toLowerCase();
     const allowDuo = !isProLeague && (matchType.includes('duo') || matchType.includes('both') || matchType.includes('solo/duo'));
     const duoOnly = !isProLeague && matchType.includes('duo') && !matchType.includes('solo');
-    let selectedType = isProLeague ? 'Squad' : (duoOnly ? 'Duo' : 'Solo');
+    let selectedType = isProLeague ? 'Squad' : null; // Solo/Duo must be chosen first
+    const allowSolo = !duoOnly;
     let currentFee = baseFee;
 
     // Pro League: Team Name + IGL + WhatsApp + optional logo
@@ -2774,6 +2775,8 @@ function joinMatch(matchId) {
                 </div>
                 ${groupSelect}
 `;
+        } else if (!selectedType) {
+            namesHtml = `<p style="font-size:13px;color:#ffb84d;text-align:center;margin:14px 0 4px;">প্রথমে উপরে ${allowSolo && allowDuo ? 'Solo অথবা Duo' : (allowDuo ? 'Duo' : 'Solo')} সিলেক্ট করুন, তারপর নাম দেওয়ার অপশন আসবে।</p>`;
         } else if (isDuo) {
             namesHtml = `
             <div class="form-group" style="margin-top:14px;">
@@ -2790,21 +2793,18 @@ function joinMatch(matchId) {
         const typeButtons = isProLeague ? `
                 <div style="text-align:center;margin-bottom:8px;">
                     <span style="display:inline-block;padding:8px 22px;border-radius:20px;background:linear-gradient(135deg,#e10600,#1a5cff);color:#fff;font-weight:700;font-size:13px;">Squad Mode — Pro League</span>
-                </div>` : (allowDuo ? `
-                <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px;">
-                    <button type="button" id="btn-solo" class="btn-sm" style="padding:8px 22px;border-radius:20px;background:${!isDuo ? '#e10600' : '#333'};color:#fff;font-weight:600;">Solo</button>
-                    <button type="button" id="btn-duo" class="btn-sm" style="padding:8px 22px;border-radius:20px;background:${isDuo ? '#e10600' : '#333'};color:#fff;font-weight:600;">Duo</button>
                 </div>` : `
-                <div style="text-align:center;margin-bottom:8px;">
-                    <span style="display:inline-block;padding:8px 22px;border-radius:20px;background:#e10600;color:#fff;font-weight:600;font-size:13px;">Solo Only</span>
-                </div>`);
+                <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px;">
+                    ${allowSolo ? `<button type="button" id="btn-solo" class="btn-sm" style="padding:8px 22px;border-radius:20px;background:${selectedType === 'Solo' ? '#e10600' : '#333'};color:#fff;font-weight:600;">Solo</button>` : ''}
+                    ${allowDuo ? `<button type="button" id="btn-duo" class="btn-sm" style="padding:8px 22px;border-radius:20px;background:${selectedType === 'Duo' ? '#e10600' : '#333'};color:#fff;font-weight:600;">Duo</button>` : ''}
+                </div>`;
 
         showModal('Join Match', `
             <div style="text-align:left;">
                 <h3 style="font-size:16px;margin-bottom:4px;">${match.title}</h3>
                 <p style="font-size:13px;color:#8b93a7;margin-bottom:12px;">Entry Fee: <strong style="color:#ff6b6b;">${currentFee} TK</strong>${isProLeague ? ` <span style="color:#5b9dff;">(${(match.maps && match.maps.length) ? match.maps.length : seriesTotal} Maps)</span>` : (isDuo ? ' <span style="color:#ffb84d;">(Duo = 2×)</span>' : '')} | Balance: ${formatMoney(currentUser.balance || 0)}</p>
                 ${currentFee === 0 && isProLeague ? '<p style="font-size:12px;color:#00d68f;margin-bottom:8px;">সিরিজ এন্ট্রি আগে দেওয়া আছে — এই ম্যাচ ফ্রি জয়েন</p>' : ''}
-                ${!isProLeague && allowDuo ? `<p style="font-size:12px;color:#8b93a7;margin:-6px 0 10px;">Solo = ${baseFee} TK · Duo = ${baseFee * 2} TK</p>` : ''}
+                ${!isProLeague && allowDuo && allowSolo ? `<p style="font-size:12px;color:#8b93a7;margin:-6px 0 10px;">Solo = ${baseFee} TK · Duo = ${baseFee * 2} TK</p>` : ''}
                 ${typeButtons}
                 ${namesHtml}
             </div>
@@ -2819,6 +2819,10 @@ function joinMatch(matchId) {
                         return;
                     }
 
+                    if (!isProLeague && !selectedType) {
+                        toast('প্রথমে ' + (allowSolo && allowDuo ? 'Solo অথবা Duo' : (allowDuo ? 'Duo' : 'Solo')) + ' সিলেক্ট করুন');
+                        return;
+                    }
                     const isDuoNow = allowDuo && selectedType === 'Duo';
                     const seriesAlready = isProLeague && seriesId && userHasSeriesEntry();
                     let p1 = '', p2 = '', roles = {};
@@ -3067,6 +3071,7 @@ function joinMatch(matchId) {
 }
 
 function showJoinReceipt(match, joinRecord) {
+    try { if (window.hxFeature && window.hxFeature('confetti')) window.hxConfetti(); } catch (e) {}
     const mapText = (match.maps && match.maps.length > 1)
         ? (match.maps.length + ' Maps')
         : (match.map || '—');
@@ -4540,7 +4545,7 @@ function openAdminModule(tab) {
     const titles = {
         matches: 'Matches', deposits: 'Add Money', withdraws: 'Withdrawals',
         users: 'Users', 'results-dist': 'Result Dist', rules: 'Categories / Rules',
-        'pro-control': 'Pro League', settings: 'App Settings', 'app-control': 'App Control', 'app-design': 'App Design'
+        'pro-control': 'Pro League', settings: 'App Settings', 'app-control': 'App Control', 'app-design': 'App Design', 'app-features': 'App Features'
     };
     const t = $('#admin-mod-title');
     if (t) t.textContent = titles[tab] || tab;
@@ -4645,6 +4650,9 @@ async function loadAdmin(tab = 'matches') {
     }
     else if (tab === 'app-design') {
         if (window.hxRenderDesignAdmin) window.hxRenderDesignAdmin(container);
+    }
+    else if (tab === 'app-features') {
+        if (window.hxRenderFeaturesAdmin) window.hxRenderFeaturesAdmin(container);
     }
     else if (tab === 'settings') {
         (async () => {
@@ -6208,11 +6216,13 @@ async function adminPermanentDeleteMatch(matchId) {
 
 
 function renderAdminResultDist(container) {
-    // Published results leave this panel (still visible on public Results nav)
+    // Private results on top; Public results listed below (can be unpublished)
     const resultsAll = (CACHE.matchResults || [])
         .filter(r => !r.public)
         .slice()
         .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+    const publicList = (CACHE.matchResults || []).filter(r => r.public)
+        .slice().sort((x, y) => new Date(y.updatedAt || y.createdAt || 0) - new Date(x.updatedAt || x.createdAt || 0));
     const rdFilter = adminResultCatFilter || 'all';
     const results = rdFilter === 'all'
         ? resultsAll
@@ -6326,6 +6336,19 @@ function renderAdminResultDist(container) {
                     </div>
                 </div>`;
             }).join('')}
+        </div>
+        <div class="admin-section">
+            <h3>🌐 Public Results (${publicList.length})</h3>
+            <p style="font-size:12px;color:#8b93a7;margin:-4px 0 10px;">পাবলিক করা রেজাল্ট এখানে থাকবে — Unpublish করলে পাবলিক Results থেকে সরে উপরের লিস্টে (Private) ফিরে যাবে।</p>
+            ${publicList.length === 0 ? '<p style="color:#636e72;">কোনো পাবলিক রেজাল্ট নেই</p>' : publicList.map(r => `
+                <div class="admin-match-item">
+                    <h4>${r.title || 'Match'}</h4>
+                    <p style="font-size:12px;color:#8b93a7;">${r.startTime ? formatTime(r.startTime) : ''} · Winner: <strong style="color:#ffb84d;">${r.championTeam || r.winner || '—'}</strong> · <span style="color:#00d68f;">PUBLIC</span></p>
+                    <div class="admin-actions" style="flex-wrap:wrap;margin-top:8px;">
+                        <button class="btn-sm" style="background:#e17055;color:#fff;" onclick="adminToggleResultPublic('${r.id}')">Unpublish</button>
+                        <button class="btn-sm edit" onclick="adminEditResultDist('${r.id}')">Edit</button>
+                    </div>
+                </div>`).join('')}
         </div>
     `;
 }
@@ -8918,6 +8941,192 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     }
 
     window.hxRenderDesignAdmin = render;
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+
+
+/* ===== features.js (merged) ===== */
+/* HuntX BD — Optional App Features (ALL OFF by default; admin switches them on).
+   Admin → App Features. Saved to Firestore config/appFeatures → applies to all users. */
+(function () {
+    'use strict';
+    var LS = 'hx_feat_v1', LS_UT = 'hx_user_theme';
+    var LIST = [
+        { k: 'confetti', t: '🎉 Join Confetti', d: 'ম্যাচে সফলভাবে জয়েন করলে কনফেটি (রঙিন কাগজ) উড়বে' },
+        { k: 'haptic',   t: '📳 Vibration on Tap', d: 'বাটন ও কার্ডে ট্যাপ করলে ফোনে ছোট ভাইব্রেশন' },
+        { k: 'sound',    t: '🔊 Tap Sound', d: 'বাটনে ট্যাপ করলে হালকা টুক শব্দ' },
+        { k: 'sparkles', t: '✨ Floating Sparkles', d: 'অ্যাপের ব্যাকগ্রাউন্ডে ধীরে ভেসে চলা ঝিকমিক আলো' },
+        { k: 'greeting', t: '👋 Home Greeting', d: 'Play পেজের উপরে "Hi, ইউজারনেম" স্বাগত বার্তা' },
+        { k: 'userTheme', t: '🌗 User Theme Switch', d: 'প্রোফাইলে ইউজার নিজে Dark/Light মোড বদলাতে পারবে' }
+    ];
+    var feat = {};
+    var draft = null;
+
+    function load() { try { var c = JSON.parse(localStorage.getItem(LS) || '{}'); return c && typeof c === 'object' ? c : {}; } catch (e) { return {}; } }
+    function on(k) { return !!(feat && feat[k] === true); }
+    window.hxFeature = on;
+    function say(m) { try { if (typeof toast === 'function') toast(m); } catch (e) {} }
+
+    // ---------- 1. confetti ----------
+    window.hxConfetti = function () {
+        var cv = document.createElement('canvas');
+        cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:100003;pointer-events:none;';
+        cv.width = innerWidth; cv.height = innerHeight;
+        document.body.appendChild(cv);
+        var ctx = cv.getContext('2d'), cols = ['#ff2d95', '#00c8ff', '#ffe600', '#00ff9d', '#7c4dff', '#ff8a00'], ps = [], i;
+        for (i = 0; i < 110; i++) ps.push({ x: cv.width / 2, y: cv.height * 0.55, vx: (Math.random() - 0.5) * 14, vy: -Math.random() * 15 - 4, s: 4 + Math.random() * 5, c: cols[i % cols.length], r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4 });
+        var t0 = Date.now();
+        (function tick() {
+            var el = Date.now() - t0;
+            ctx.clearRect(0, 0, cv.width, cv.height);
+            ps.forEach(function (p) { p.vy += 0.38; p.x += p.vx; p.y += p.vy; p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.globalAlpha = Math.max(0, 1 - el / 2400); ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); });
+            if (el < 2400) requestAnimationFrame(tick); else cv.remove();
+        })();
+    };
+
+    // ---------- 2 + 3. haptic / sound on tap ----------
+    var actx = null;
+    var TAP = 'button, .nav-item, .category-card, .match-card, .menu-item, .tab, .dep-tab, .admin-mod';
+    function beep() {
+        try {
+            actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+            var o = actx.createOscillator(), g = actx.createGain();
+            o.type = 'sine'; o.frequency.value = 880; g.gain.value = 0.04;
+            o.connect(g); g.connect(actx.destination);
+            o.start(); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.08); o.stop(actx.currentTime + 0.09);
+        } catch (e) {}
+    }
+    document.addEventListener('pointerdown', function (e) {
+        if (!e.target.closest || !e.target.closest(TAP)) return;
+        if (on('haptic') && navigator.vibrate) { try { navigator.vibrate(12); } catch (x) {} }
+        if (on('sound')) beep();
+    }, { passive: true, capture: true });
+
+    // ---------- 4. sparkles ----------
+    var spCv = null, spRaf = 0;
+    function sparkles(enable) {
+        if (!enable) { if (spCv) { cancelAnimationFrame(spRaf); spCv.remove(); spCv = null; } return; }
+        if (spCv || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+        spCv = document.createElement('canvas');
+        spCv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;';
+        spCv.width = innerWidth; spCv.height = innerHeight;
+        document.body.appendChild(spCv);
+        var ctx = spCv.getContext('2d'), n = 26, ps = [], cols = ['#00c8ff', '#7c4dff', '#ff2d95', '#ffe600'], i;
+        for (i = 0; i < n; i++) ps.push({ x: Math.random() * spCv.width, y: Math.random() * spCv.height, r: 1 + Math.random() * 2.2, v: 0.15 + Math.random() * 0.4, c: cols[i % 4], p: Math.random() * 6 });
+        (function tick() {
+            if (!spCv) return;
+            if (!document.hidden) {
+                ctx.clearRect(0, 0, spCv.width, spCv.height);
+                var t = Date.now() / 800;
+                ps.forEach(function (q) { q.y -= q.v; if (q.y < -5) { q.y = spCv.height + 5; q.x = Math.random() * spCv.width; } ctx.globalAlpha = 0.25 + 0.5 * Math.abs(Math.sin(t + q.p)); ctx.fillStyle = q.c; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.283); ctx.fill(); });
+            }
+            spRaf = requestAnimationFrame(tick);
+        })();
+    }
+
+    // ---------- 5. greeting ----------
+    function greeting() {
+        var g = document.getElementById('hx-greet'), pg = document.getElementById('play-page');
+        if (!on('greeting') || !pg || typeof currentUser === 'undefined' || !currentUser) { if (g) g.remove(); return; }
+        var txt = '👋 Hi, ' + String(currentUser.username || '').replace(/</g, '&lt;');
+        if (!g) {
+            g = document.createElement('div'); g.id = 'hx-greet';
+            g.style.cssText = 'padding:10px 16px 0;font-size:15px;font-weight:700;';
+            pg.insertBefore(g, pg.firstChild);
+        }
+        if (g.innerHTML !== txt) g.innerHTML = txt;
+    }
+
+    // ---------- 6. user theme switch ----------
+    var utGuard = false;
+    function userThemeApply() {
+        var b = document.body; if (!b) return;
+        var pref = ''; try { pref = localStorage.getItem(LS_UT) || ''; } catch (e) {}
+        if (!on('userTheme') || !pref) return;
+        var wantLight = pref === 'light';
+        if (b.classList.contains('light-theme') === wantLight) return;
+        utGuard = true;
+        b.classList.toggle('light-theme', wantLight);
+        b.classList.toggle('dark-theme', !wantLight);
+        utGuard = false;
+    }
+    function themeItem() {
+        var menu = document.querySelector('#profile-page .profile-menu'), it = document.getElementById('hx-theme-item');
+        if (!on('userTheme') || !menu) { if (it) it.remove(); return; }
+        if (it) return;
+        it = document.createElement('div');
+        it.className = 'menu-item'; it.id = 'hx-theme-item';
+        it.innerHTML = '<i class="fas fa-adjust"></i><span>Dark / Light Mode</span><i class="fas fa-chevron-right" style="margin-left:auto;opacity:0.5;"></i>';
+        it.addEventListener('click', function () {
+            var light = !document.body.classList.contains('light-theme');
+            try { localStorage.setItem(LS_UT, light ? 'light' : 'dark'); } catch (e) {}
+            userThemeApply();
+        });
+        menu.insertBefore(it, menu.firstChild);
+    }
+
+    function applyAll() {
+        sparkles(on('sparkles'));
+        greeting(); themeItem(); userThemeApply();
+    }
+
+    // ---------- boot ----------
+    function boot() {
+        feat = load();
+        applyAll();
+        var q = 0;
+        new MutationObserver(function (muts) {
+            if (utGuard) return;
+            if (q) return;
+            q = setTimeout(function () { q = 0; greeting(); themeItem(); userThemeApply(); }, 200);
+        }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        var tries = 0;
+        var t = setInterval(function () {
+            if (typeof firebaseReady !== 'undefined' && firebaseReady && typeof db !== 'undefined' && db) {
+                clearInterval(t);
+                db.collection('config').doc('appFeatures').onSnapshot(function (snap) {
+                    var raw = {};
+                    if (snap && snap.exists) { var x = snap.data(); raw = x.value !== undefined ? x.value : x; }
+                    feat = raw && typeof raw === 'object' ? raw : {};
+                    try { localStorage.setItem(LS, JSON.stringify(feat)); } catch (e) {}
+                    applyAll();
+                    var box = document.getElementById('hx-feat-box'); if (box && !draft) paint(box);
+                }, function () {});
+            } else if (++tries > 60) clearInterval(t);
+        }, 500);
+    }
+
+    // ---------- admin UI ----------
+    function paint(box) {
+        box.querySelectorAll('input[data-f]').forEach(function (c) { c.checked = (draft || feat)[c.getAttribute('data-f')] === true; });
+    }
+    window.hxRenderFeaturesAdmin = function (container) {
+        if (!container) return;
+        draft = null;
+        var h = '<div class="admin-section" id="hx-feat-box"><h3>✨ App Features</h3>' +
+            '<p style="font-size:12px;color:#8b93a7;line-height:1.5;margin-bottom:10px;">এখানকার সব ফিচার <b>বন্ধ</b> অবস্থায় আছে। আপনি যেটা চান শুধু সেটা চালু করুন। চালু/বন্ধ সাথে সাথে সব ইউজারের অ্যাপে যাবে। <b id="hx-f-status" style="color:#00d68f;"></b></p>' +
+            LIST.map(function (f) {
+                return '<div class="hx-push-card" style="margin:0 0 8px;padding:10px 12px;"><div class="hx-push-txt"><strong>' + f.t + '</strong><span>' + f.d + '</span></div>' +
+                    '<label class="hx-switch"><input type="checkbox" data-f="' + f.k + '"><span class="hx-knob"></span></label></div>';
+            }).join('') + '</div>';
+        container.innerHTML = h;
+        var box = container.querySelector('#hx-feat-box');
+        paint(box);
+        box.addEventListener('change', function (e) {
+            var k = e.target.getAttribute && e.target.getAttribute('data-f');
+            if (!k) return;
+            if (!currentUser || !currentUser.isAdmin) { e.target.checked = !e.target.checked; return say('শুধু অ্যাডমিন'); }
+            var next = {}; for (var x in feat) next[x] = feat[x];
+            next[k] = e.target.checked;
+            feat = next; applyAll();
+            var st = box.querySelector('#hx-f-status'); if (st) st.textContent = 'সেভ হচ্ছে...';
+            cloudSetConfig('appFeatures', next).then(function () {
+                try { localStorage.setItem(LS, JSON.stringify(next)); } catch (er) {}
+                if (st) st.textContent = '✓ সেভ হয়েছে';
+            }).catch(function () { e.target.checked = !e.target.checked; feat[k] = e.target.checked; applyAll(); if (st) st.textContent = ''; say('Save ব্যর্থ হয়েছে'); });
+        });
+    };
+
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 
