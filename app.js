@@ -916,13 +916,13 @@ function getNotifications() {
         myJoins.forEach(j => {
             const match = (CACHE.matches || []).find(m => String(m.id) === String(j.matchId));
             if (!match) return;
-            if (match.roomId || match.password || match.roomPassword) {
-                const pass = match.password || match.roomPassword || '—';
+            if (match.roomId || match.roomPass || match.password || match.roomPassword) {
+                const pass = match.roomPass || match.password || match.roomPassword || '—';
                 items.push({
                     id: 'room-' + match.id,
                     cat: 'matches',
-                    title: 'Room Details Updated #' + match.id,
-                    body: 'Room ID: ' + (match.roomId || '—') + ', Password: ' + pass + '. Join the match now! Happy Gaming!',
+                    title: 'Room Details — ' + (match.title || ('#' + match.id)),
+                    body: 'Room ID: ' + (match.roomId || '—') + '\nPassword: ' + pass + '\nHappy Gaming!',
                     at: match.roomUpdatedAt || match.updatedAt || match.startTime || j.createdAt || new Date().toISOString(),
                     tag: 'MATCHES'
                 });
@@ -2786,10 +2786,8 @@ function joinMatch(matchId) {
                     <input type="text" id="join-team-name" placeholder="আপনার টিমের নাম" maxlength="40">
                 </div>
                 <div class="form-group" style="margin-top:8px;">
-                    <label style="font-size:12px;color:#c5cbe0;display:flex;align-items:center;gap:8px;">IGL Name *
-                        <button type="button" id="hx-igl-info" aria-label="Notice" onclick="var n=document.getElementById('hx-igl-note');n.style.display=n.style.display==='block'?'none':'block';" style="width:20px;height:20px;border-radius:50%;border:0;background:#ffb84d;color:#1a1a1a;font-weight:800;font-size:12px;line-height:20px;padding:0;cursor:pointer;">!</button>
-                    </label>
-                    <div id="hx-igl-note" style="display:none;margin:0 0 8px;padding:9px 11px;border-radius:10px;background:rgba(255,184,77,.14);border:1px solid rgba(255,184,77,.5);color:#ffcf85;font-size:12px;line-height:1.5;">যেই IGL এর নাম দিয়ে রেজিস্ট্রেশন করবেন, সেই IGL কেই অবশ্যই খেলতে হবে।</div>
+                    <label style="font-size:12px;color:#c5cbe0;">IGL Name *</label>
+                    <div id="hx-igl-note" style="margin:4px 0 8px;padding:9px 11px;border-radius:10px;background:rgba(255,184,77,.14);border:1px solid rgba(255,184,77,.5);color:#ffcf85;font-size:12px;line-height:1.5;">⚠️ যেই IGL এর নাম দিয়ে রেজিস্ট্রেশন করবেন, সেই IGL কেই অবশ্যই খেলতে হবে।</div>
                     <input type="text" id="join-igl-name" placeholder="In-Game Leader Name (English)" maxlength="30">
                 </div>
                 <div class="form-group" style="margin-top:8px;">
@@ -5383,11 +5381,17 @@ function adminEditRoom(matchId) {
                 const roomId = (document.getElementById('edit-roomid')?.value || '').trim();
                 const roomPass = (document.getElementById('edit-roompass')?.value || '').trim();
                 const roomNote = (document.getElementById('edit-roomnote')?.value || '').trim();
+                const prevRid = m.roomId || '', prevPass = m.roomPass || '';
                 m.roomId = roomId;
                 m.roomPass = roomPass;
                 m.roomNote = roomNote;
                 const docId = m._docId != null ? m._docId : m.id;
-                await cloudSet('matches', docId, { roomId, roomPass, roomNote });
+                const roomChanged = (roomId || roomPass) && (roomId !== String(prevRid) || roomPass !== String(prevPass));
+                await cloudSet('matches', docId, { roomId, roomPass, roomNote, roomUpdatedAt: new Date().toISOString() });
+                if (roomChanged && typeof window.hxRoomPush === 'function') {
+                    const sent = window.hxRoomPush(m.id, 'Room Details — ' + (m.title || 'Match'), 'Room ID: ' + (roomId || '—') + '\nPassword: ' + (roomPass || '—') + '\nHappy Gaming!');
+                    if (!sent) setTimeout(() => toast('Push বন্ধ আছে — App Control থেকে Push সুইচ চালু করলে ইউজাররা নোটিফিকেশন পাবে'), 900);
+                }
                 const idx = (CACHE.matches || []).findIndex(x => String(x.id) === String(m.id));
                 if (idx >= 0) {
                     CACHE.matches[idx].roomId = roomId;
@@ -8018,7 +8022,11 @@ function updateSplash(percent, message) {
         _splashPercent = percent;
     }
     if (status && message) status.textContent = message;
-    if (bar) bar.style.width = _splashPercent + '%';
+    window.__hxPreStop = true;
+    const shown = Math.max(_splashPercent, window.__hxPre || 0);
+    if (bar) bar.style.width = shown + '%';
+    const pc = document.getElementById('splash-pct');
+    if (pc) pc.textContent = Math.round(shown) + '%';
 }
 
 /** Smoothly creep progress while waiting (feels alive, not stuck) */
@@ -8222,6 +8230,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateNavBalance();
     } catch (e) {}
 
+    // make sure the (non-blocking) stylesheet is applied before the splash goes away
+    for (let i = 0; i < 60 && !window.__hxCss; i++) await new Promise(r => setTimeout(r, 50));
     await new Promise(r => setTimeout(r, 40));
     hideSplash();
 
@@ -8784,6 +8794,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
         grade: { on: false, level: 100 },
         touch: { trail: true, press: true },
         border: { on: true, w: 3, color: '' },
+        tpl: {},
         colors: {},
         vars: {},
         lcolors: {},
@@ -8841,7 +8852,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     function merge(raw) {
         var s = clone(DEF);
         if (!raw || typeof raw !== 'object') return s;
-        ['rgb', 'grade', 'touch', 'border', 'colors', 'vars', 'lcolors', 'lvars'].forEach(function (g) {
+        ['rgb', 'grade', 'touch', 'border', 'tpl', 'colors', 'vars', 'lcolors', 'lvars'].forEach(function (g) {
             if (raw[g] && typeof raw[g] === 'object') for (var k in raw[g]) s[g][k] = raw[g][k];
         });
         if (s.border && Number(s.border.w) === 2) s.border.w = 3; // old default → new thicker default
@@ -8853,8 +8864,69 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     function ok(c) { return /^#[0-9a-fA-F]{6}$/.test(c || ''); }
     function say(m) { try { if (typeof toast === 'function') toast(m); } catch (e) {} }
 
-    function buildCss(d) {
+
+    // ---- Ready-made templates (admin picks one → it is applied for every user) ----
+    var BTN_TPL = [
+        { id: 'neonred', n: 'Neon Red', bg: 'linear-gradient(135deg,#ff1744,#d50000)', c: '#fff', sh: '0 0 14px rgba(255,23,68,.65)' },
+        { id: 'ocean', n: 'Ocean', bg: 'linear-gradient(135deg,#00c6ff,#0072ff)', c: '#fff', sh: '0 4px 14px rgba(0,114,255,.5)' },
+        { id: 'purple', n: 'Purple Haze', bg: 'linear-gradient(135deg,#8e2de2,#4a00e0)', c: '#fff', sh: '0 4px 14px rgba(142,45,226,.5)' },
+        { id: 'emerald', n: 'Emerald', bg: 'linear-gradient(135deg,#11998e,#38ef7d)', c: '#fff', sh: '0 4px 14px rgba(56,239,125,.4)' },
+        { id: 'sunset', n: 'Sunset', bg: 'linear-gradient(135deg,#ff512f,#f09819)', c: '#fff', sh: '0 4px 14px rgba(255,81,47,.45)' },
+        { id: 'gold', n: 'Gold', bg: 'linear-gradient(135deg,#f7971e,#ffd200)', c: '#1a1a1a', sh: '0 4px 14px rgba(255,210,0,.45)' },
+        { id: 'rose', n: 'Rose', bg: 'linear-gradient(135deg,#ec008c,#fc6767)', c: '#fff', sh: '0 4px 14px rgba(236,0,140,.45)' },
+        { id: 'cyber', n: 'Cyber', bg: 'linear-gradient(135deg,#00f5a0,#00d9f5)', c: '#06222a', sh: '0 0 14px rgba(0,245,160,.55)' },
+        { id: 'glass', n: 'Glass', bg: 'rgba(255,255,255,.14)', c: '#fff', b: '1px solid rgba(255,255,255,.4)', sh: '0 4px 18px rgba(0,0,0,.25)', blur: true },
+        { id: 'outline', n: 'Neon Outline', bg: 'transparent', c: '#00e5ff', b: '2px solid #00e5ff', sh: '0 0 12px rgba(0,229,255,.6)' },
+        { id: 'darkpill', n: 'Dark Pill', bg: '#12141c', c: '#fff', b: '1px solid #343a50', sh: 'none', r: '999px' },
+        { id: 'fire', n: 'Fire', bg: 'linear-gradient(135deg,#f12711,#f5af19)', c: '#fff', sh: '0 0 16px rgba(241,39,17,.6)' }
+    ];
+    var SURF_TPL = [
+        { id: 'midnight', n: 'Midnight', bg: 'linear-gradient(135deg,#0b1026,#1b2550)' },
+        { id: 'violet', n: 'Deep Violet', bg: 'linear-gradient(135deg,#1a0b2e,#3b1a6e)' },
+        { id: 'carbon', n: 'Carbon', bg: 'linear-gradient(135deg,#0c0c0f,#23252d)' },
+        { id: 'wine', n: 'Wine', bg: 'linear-gradient(135deg,#2a0a14,#5a1228)' },
+        { id: 'forest', n: 'Forest', bg: 'linear-gradient(135deg,#06201a,#0f4a3a)' },
+        { id: 'ocean', n: 'Deep Ocean', bg: 'linear-gradient(135deg,#041c2c,#0a4d6e)' },
+        { id: 'ember', n: 'Ember', bg: 'linear-gradient(135deg,#2b0f06,#6b2a0c)' },
+        { id: 'slate', n: 'Slate', bg: 'linear-gradient(135deg,#171b26,#2c3447)' }
+    ];
+    function tplList(t) { return t.text ? BTN_TPL : SURF_TPL; }
+    function tplFind(t, id) { var l = tplList(t); for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i]; return null; }
+    function tplCss(d) {
         var css = '';
+        TARGETS.forEach(function (t) {
+            var id = d.tpl && d.tpl[t.k]; if (!id) return;
+            var T = tplFind(t, id); if (!T) return;
+            var modes = t.text ? ['html body.light-theme ', 'html body:not(.light-theme) '] : ['html body:not(.light-theme) '];
+            modes.forEach(function (pre) {
+                var sel = t.sel.split(',').map(function (x) { return pre + x.trim(); }).join(',');
+                if (t.k === 'page') sel = 'html body:not(.light-theme), html:not(.light-theme)';
+                css += sel + '{background:' + T.bg + ' !important;' + (t.k === 'page' ? 'background-attachment:fixed !important;' : '') +
+                    (T.b ? 'border:' + T.b + ' !important;' : '') + (T.sh ? 'box-shadow:' + T.sh + ' !important;' : '') +
+                    (T.r ? 'border-radius:' + T.r + ' !important;' : '') + (T.blur ? '-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);' : '') + '}\n';
+                if (T.c) css += t.sel.split(',').map(function (x) { x = x.trim(); return pre + x + ',' + pre + x + ' *'; }).join(',') + '{color:' + T.c + ' !important;}\n';
+            });
+        });
+        return css;
+    }
+    function tplSection() {
+        var h = '<div class="admin-section"><h3>🧩 Templates</h3><p style="font-size:12px;color:#8b93a7;line-height:1.5;margin-bottom:10px;">পছন্দের ডিজাইনে ট্যাপ করুন — সাথে সাথে সেভ হয়ে সব ইউজারের অ্যাপে বদলে যাবে। "Default" = আগের ডিজাইন।</p>';
+        TARGETS.forEach(function (t) {
+            var cur = (draft && draft.tpl && draft.tpl[t.k]) || '';
+            h += '<div style="margin-bottom:14px;"><div style="font-size:13px;font-weight:700;margin-bottom:6px;">' + t.t + '</div><div style="display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;-webkit-overflow-scrolling:touch;">';
+            h += '<button type="button" data-tpl="' + t.k + '" data-id="" style="flex:0 0 auto;min-width:84px;padding:9px 12px;border-radius:10px;border:' + (!cur ? '2px solid #7c4dff' : '1px solid rgba(128,128,128,.4)') + ';background:transparent;color:inherit;font-size:12px;font-weight:600;">Default</button>';
+            tplList(t).forEach(function (T) {
+                var sel = cur === T.id;
+                var st = 'background:' + T.bg + ';color:' + (T.c || '#fff') + ';' + (T.b ? 'border:' + T.b + ';' : 'border:0;') + (T.sh ? 'box-shadow:' + T.sh + ';' : '') + 'border-radius:' + (T.r || '10px') + ';';
+                h += '<button type="button" data-tpl="' + t.k + '" data-id="' + T.id + '" style="flex:0 0 auto;min-width:84px;padding:9px 12px;font-size:12px;font-weight:700;outline:' + (sel ? '3px solid #7c4dff' : 'none') + ';outline-offset:2px;' + st + '">' + (sel ? '✓ ' : '') + T.n + '</button>';
+            });
+            h += '</div></div>';
+        });
+        return h + '</div>';
+    }
+
+    function buildCss(d) {
+        var css = tplCss(d);
         TARGETS.forEach(function (t) {
             var c = (isLight() ? d.lcolors : d.colors)[t.k];
             if (!c || !c.mode) return;
@@ -9005,12 +9077,13 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
     }
     function curGuess(t) { return editLight ? { c1: '#ffffff', c2: '#eef1f8', grad: false, tc: '#1a1d2b' } : { c1: t.d[0], c2: t.d[1], grad: true, tc: '#ffffff' }; }
 
-    var boundBox = null, saveTimer = 0;
+    var boundBox = null, saveTimer = 0, keepDraft = false;
     function render(container) {
         if (!container) return;
         if (editLight === null) editLight = isLight();
         readCurrent();
-        draft = merge(state);
+        if (!(keepDraft && draft)) draft = merge(state);
+        keepDraft = false;
         var h = '<div class="admin-section"><h3>🎨 App Design</h3><p style="font-size:12px;color:#8b93a7;line-height:1.5;margin-bottom:6px;">এখানে যা বদলাবেন সাথে সাথে নিজে থেকে সেভ হয়ে সব ইউজারের অ্যাপে আপডেট হবে। Default রাখলে অ্যাপের আগের রঙই থাকবে। <b id="hx-d-status" style="color:#00d68f;"></b></p></div>';
         h += '<div class="admin-section"><h3>💡 RGB Lights</h3>' +
             sw('rgb.all', '⚡ সব RGB লাইট (Master)', 'বন্ধ করলে নিচের সবগুলো একসাথে বন্ধ') +
@@ -9043,6 +9116,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
             '<p id="hx-theme-note" style="font-size:11px;color:#8b93a7;margin-bottom:10px;"></p>' +
             '<div style="margin-bottom:6px;">' + col(vk() + '.primary', 'Main (Red) Color') + col(vk() + '.secondary', 'Secondary (Blue)') + col(vk() + '.navActive', 'Nav Active Color') + '</div>' +
             '<button type="button" class="btn-sm delete" id="hx-d-clearvars">এই মোডের Main/Nav কালার Default করুন</button></div>';
+        h += tplSection();
         h += TARGETS.map(targetRow).join('');
         h += '<div class="admin-section"><button type="button" class="btn-primary" id="hx-d-save">💾 Save Now</button>' +
             '<button type="button" class="btn-sm delete" id="hx-d-reset" style="margin-top:10px;width:100%;padding:12px;">↺ সব Default এ ফিরিয়ে আনুন</button></div>';
@@ -9080,6 +9154,20 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
         container.addEventListener('input', function (e) { var t = e.target; if (t.hasAttribute && t.hasAttribute('data-p') && t.type !== 'checkbox' && t.tagName !== 'SELECT') upd(t); });
         container.addEventListener('change', function (e) { if (e.target.hasAttribute && e.target.hasAttribute('data-p')) upd(e.target); });
         container.addEventListener('click', function (e) {
+            var tb = e.target && e.target.closest && e.target.closest('[data-tpl]');
+            if (tb) {
+                var tk = tb.getAttribute('data-tpl'), tid = tb.getAttribute('data-id') || '';
+                if (!draft) draft = merge(state);
+                if (!draft.tpl) draft.tpl = {};
+                draft.tpl[tk] = tid;
+                if (tid) { ['colors', 'lcolors'].forEach(function (g) { if (draft[g][tk]) draft[g][tk].mode = ''; }); }
+                apply(draft);
+                var keep = container.scrollTop, wy = window.scrollY, par = container.closest('.admin-body'), pk = par ? par.scrollTop : 0; keepDraft = true; render(container); container.scrollTop = keep; window.scrollTo(0, wy); if (par) par.scrollTop = pk;
+                var st0 = container.querySelector('#hx-d-status'); if (st0) st0.textContent = 'সেভ হচ্ছে...';
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(function () { persist(container, clone(draft), null); }, 400);
+                return;
+            }
             var id = e.target && e.target.id;
             if (id === 'hx-tab-dark' || id === 'hx-tab-light') { editLight = (id === 'hx-tab-light'); render(container); return; }
             if (id === 'hx-d-clearvars') { draft[vk()] = {}; apply(draft); fill(container); clearTimeout(saveTimer); saveTimer = setTimeout(function () { persist(container, clone(draft), null); }, 300); return; }
@@ -9351,6 +9439,22 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
         document.addEventListener('pointerdown', h, true);
     }
 
+    // Room push is only for players who joined that match (admin always sees it)
+    var tTries = 0;
+    function targetOk() {
+        if (!state.matchId) return true;
+        if (typeof currentUser === 'undefined' || !currentUser) return false;
+        if (currentUser.isAdmin) return true;
+        if (typeof CACHE === 'undefined' || !CACHE._joinsLive) return false;
+        try { return !!isUserJoined(state.matchId); } catch (e) { return false; }
+    }
+    window.hxRoomPush = function (matchId, title, body) {
+        if (!state.enabled) return false;
+        var id = 'p' + Date.now();
+        save({ enabled: true, id: id, title: title, body: body, ts: Date.now(), matchId: String(matchId) });
+        try { db.collection('pushQueue').add({ title: title, body: body, id: id, ts: Date.now(), status: 'pending', matchId: String(matchId) }); } catch (e) {}
+        return true;
+    };
     function onState(snap) {
         var m = null;
         if (snap && snap.exists) { var d = snap.data(); m = d.value !== undefined ? d.value : d; }
@@ -9360,6 +9464,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
         armPermission();
         enableFcm();
         if (!state.id) return;
+        if (state.matchId && !targetOk()) { var rid = state.id; if (++tTries < 15) setTimeout(function () { if (state.id === rid) onState(snap); }, 1200); return; }
         var seen = '';
         try { seen = localStorage.getItem(LS_SEEN) || ''; } catch (e) {}
         if (String(state.id) === seen) return;
@@ -9419,7 +9524,7 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
             var title = (box.querySelector('#hx-push-title').value || '').trim();
             var body = (box.querySelector('#hx-push-body').value || '').trim();
             if (!title && !body) return say('টাইটেল বা বিস্তারিত লিখুন');
-            save({ enabled: true, id: 'p' + Date.now(), title: title || 'HuntX BD', body: body, ts: Date.now() }).then(function () {
+            save({ enabled: true, id: 'p' + Date.now(), title: title || 'HuntX BD', body: body, ts: Date.now(), matchId: '' }).then(function () {
                 // queue for the server (Cloud Function) → delivers to closed apps via FCM
                 try { db.collection('pushQueue').add({ title: title || 'HuntX BD', body: body, id: 'p' + Date.now(), ts: Date.now(), status: 'pending' }); } catch (e) {}
                 say('সবার কাছে পাঠানো হয়েছে ✓');
