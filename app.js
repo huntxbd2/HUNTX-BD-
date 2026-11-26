@@ -425,6 +425,13 @@ async function initDB() {
                 seenUM.add(k);
                 return true;
             });
+            CACHE._joinsLive = true;
+            try {
+                const cnt = {};
+                CACHE.joins.forEach(j => { if (!j.refunded) cnt[j.matchId] = (cnt[j.matchId] || 0) + getJoinSlotCount(j); });
+                CACHE._cnt = cnt;
+                localStorage.setItem('huntx_counts_v1', JSON.stringify(cnt));
+            } catch (e) {}
             refreshMatchUI();
         }, err => { console.warn('joins listen', err); });
 
@@ -2674,6 +2681,12 @@ function formatPrizeList(prizes, winPrize, limit) {
 }
 
 function getJoinedCount(matchId) {
+    if (!CACHE._joinsLive) {
+        try {
+            if (!CACHE._cnt) CACHE._cnt = JSON.parse(localStorage.getItem('huntx_counts_v1') || '{}');
+            if (CACHE._cnt[matchId] != null) return CACHE._cnt[matchId];
+        } catch (e) {}
+    }
     return (CACHE.joins || [])
         .filter(j => String(j.matchId) === String(matchId) && !j.refunded)
         .reduce((sum, j) => sum + getJoinSlotCount(j), 0);
@@ -2773,8 +2786,11 @@ function joinMatch(matchId) {
                     <input type="text" id="join-team-name" placeholder="আপনার টিমের নাম" maxlength="40">
                 </div>
                 <div class="form-group" style="margin-top:8px;">
-                    <label style="font-size:12px;color:#c5cbe0;">IGL Name *</label>
-                    <input type="text" id="join-igl-name" placeholder="In-Game Leader নাম" maxlength="30">
+                    <label style="font-size:12px;color:#c5cbe0;display:flex;align-items:center;gap:8px;">IGL Name *
+                        <button type="button" id="hx-igl-info" aria-label="Notice" onclick="var n=document.getElementById('hx-igl-note');n.style.display=n.style.display==='block'?'none':'block';" style="width:20px;height:20px;border-radius:50%;border:0;background:#ffb84d;color:#1a1a1a;font-weight:800;font-size:12px;line-height:20px;padding:0;cursor:pointer;">!</button>
+                    </label>
+                    <div id="hx-igl-note" style="display:none;margin:0 0 8px;padding:9px 11px;border-radius:10px;background:rgba(255,184,77,.14);border:1px solid rgba(255,184,77,.5);color:#ffcf85;font-size:12px;line-height:1.5;">যেই IGL এর নাম দিয়ে রেজিস্ট্রেশন করবেন, সেই IGL কেই অবশ্যই খেলতে হবে।</div>
+                    <input type="text" id="join-igl-name" placeholder="In-Game Leader Name (English)" maxlength="30">
                 </div>
                 <div class="form-group" style="margin-top:8px;">
                     <label style="font-size:12px;color:#c5cbe0;">WhatsApp Number *</label>
@@ -4814,6 +4830,7 @@ function renderAdminMatches(container) {
                         <button class="btn-sm" style="background:${m.registrationClosed ? '#00b894' : '#fdcb6e'};color:${m.registrationClosed ? '#fff' : '#2d3436'};" onclick="adminToggleRegistration('${m.id}')">${m.registrationClosed ? 'Open Registration' : 'Close Registration'}</button>
                         <button class="btn-sm info" onclick="adminViewPlayers('${m.id}')">Players</button>
                         <button class="btn-sm" style="background:${m.hidePlayers ? '#e17055' : '#00b894'};color:#fff;" onclick="adminTogglePlayerList('${m.id}')">Player List: ${m.hidePlayers ? 'OFF' : 'ON'}</button>
+                        <button class="btn-sm" style="background:#8e44ad;color:#fff;" onclick="adminDemoJoin('${m.id}')">🎭 Demo Join</button>
                         ${String(m.category) === 'pro-versus' ? `<button class="btn-sm edit" onclick="adminEditVersusMatch(${m.id})">Edit Logos</button>` : ''}
                         <button class="btn-sm" style="background:#00b894;color:#fff;" onclick="adminCopyMatch('${m.id}')">Copy Match</button>
                         <button class="btn-sm" style="background:#6c5ce7;color:#fff;" onclick="adminOpenResults('${m.id}')">Results / Prize</button>
@@ -5086,6 +5103,96 @@ async function adminCreateMatch() {
 }
 
 
+
+// ===== Demo Join (admin) — fake joins, no fee, visible to everyone =====
+const HX_DEMO_NAMES = ['Shadow','Viper','Ghost','Rogue','Blaze','Falcon','Wolf','Phantom','Reaper','Storm','Titan','Nova','Hawk','Cobra','Raider','Ninja','Savage','Venom','Thunder','Frost','Dragon','Hunter','Sniper','Striker','Zero','Rebel','Echo','Apex','Bolt','Fury','Havoc','Jinx','Kraken','Lynx','Maverick','Onyx','Pulse','Quake','Razor','Spike'];
+function hxDemoName(i) {
+    const n = HX_DEMO_NAMES[Math.floor(Math.random() * HX_DEMO_NAMES.length)];
+    const t = ['', 'X', 'YT', 'BD', 'FF', 'Pro'][Math.floor(Math.random() * 6)];
+    return n + (t ? '_' + t : '') + (10 + Math.floor(Math.random() * 90));
+}
+function adminDemoJoin(matchId) {
+    if (!currentUser?.isAdmin) return toast('শুধু অ্যাডমিন');
+    const match = (CACHE.matches || []).find(m => String(m.id) === String(matchId));
+    if (!match) return toast('ম্যাচ পাওয়া যায়নি');
+    const maxP = Number(match.maxPlayers) || 48;
+    const free = Math.max(0, maxP - getJoinedCount(match.id));
+    const demoNow = (CACHE.joins || []).filter(j => String(j.matchId) === String(match.id) && j.demo && !j.refunded);
+    const old = document.getElementById('hx-demo-ov'); if (old) old.remove();
+    const ov = document.createElement('div');
+    ov.id = 'hx-demo-ov';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px;';
+    const chips = [5, 10, 20, 30].filter(n => n < free).concat(free > 0 ? [free] : []);
+    ov.innerHTML = '<div style="width:100%;max-width:360px;background:#171b2c;color:#fff;border:1px solid #2c3350;border-radius:16px;padding:18px;">' +
+        '<h3 style="margin:0 0 4px;font-size:17px;">🎭 Demo Join</h3>' +
+        '<p style="margin:0 0 12px;font-size:12px;color:#9aa3bd;">' + String(match.title || '').replace(/</g,'') + ' · খালি স্লট: <b>' + free + '</b> · এখন ডেমো: <b>' + demoNow.length + '</b></p>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">' + chips.map(n => '<button type="button" class="hx-dm-chip" data-n="' + n + '" style="padding:7px 14px;border-radius:18px;border:1px solid #3a4266;background:#232a45;color:#fff;font-weight:600;">' + (n === free ? 'Fill (' + n + ')' : n) + '</button>').join('') + '</div>' +
+        '<input type="number" id="hx-dm-n" min="1" max="' + free + '" placeholder="কয়জন ডেমো জয়েন করাতে চান?" inputmode="numeric" style="width:100%;padding:11px;border-radius:10px;border:1px solid #3a4266;background:#0f1322;color:#fff;box-sizing:border-box;">' +
+        '<div style="display:flex;gap:8px;margin-top:14px;">' +
+        '<button type="button" id="hx-dm-cancel" style="flex:1;padding:11px;border-radius:10px;border:0;background:#eef0f5;color:#111;font-weight:700;">Cancel</button>' +
+        '<button type="button" id="hx-dm-ok" style="flex:1;padding:11px;border-radius:10px;border:0;background:#6c5ce7;color:#fff;font-weight:700;">Add</button></div>' +
+        (demoNow.length ? '<button type="button" id="hx-dm-clear" style="width:100%;margin-top:10px;padding:9px;border-radius:10px;border:1px solid #e17055;background:transparent;color:#ff8a70;font-weight:600;">সব ডেমো সরিয়ে দিন (' + demoNow.length + ')</button>' : '') +
+        '</div>';
+    document.body.appendChild(ov);
+    const inp = ov.querySelector('#hx-dm-n');
+    ov.querySelectorAll('.hx-dm-chip').forEach(b => b.addEventListener('click', () => { inp.value = b.getAttribute('data-n'); }));
+    const close = () => ov.remove();
+    ov.querySelector('#hx-dm-cancel').addEventListener('click', close);
+    ov.addEventListener('click', e => { if (e.target === ov) close(); });
+    const isPro = isProLeagueCategory(match.category) || String(match.entryType || '').toLowerCase().includes('pro');
+    const commit = async (writes, label) => {
+        const btn = ov.querySelector('#hx-dm-ok'); if (btn) btn.disabled = true;
+        try {
+            if (firebaseReady) {
+                for (let i = 0; i < writes.length; i += 400) {
+                    const batch = db.batch();
+                    writes.slice(i, i + 400).forEach(w => {
+                        const ref = db.collection('joins').doc(String(w.id));
+                        if (w.del) batch.delete(ref); else batch.set(ref, w);
+                    });
+                    await batch.commit();
+                }
+            } else {
+                for (const w of writes) { if (w.del) await cloudDelete('joins', w.id); else await cloudSet('joins', w.id, w); }
+            }
+            writes.forEach(w => {
+                if (w.del) CACHE.joins = CACHE.joins.filter(x => String(x.id) !== String(w.id));
+                else CACHE.joins.push(w);
+            });
+            toast(label);
+            close();
+            try { loadAdmin('matches'); } catch (e) {}
+            try { if (currentCategory) renderMatches(currentCategory); updateCategoryCounts(); } catch (e) {}
+        } catch (e) { console.error(e); toast('ব্যর্থ হয়েছে'); if (btn) btn.disabled = false; }
+    };
+    ov.querySelector('#hx-dm-ok').addEventListener('click', () => {
+        const n = Math.floor(Number(inp.value));
+        if (!n || n < 1) return toast('কয়জন লিখুন');
+        if (n > free) return toast('খালি স্লট মাত্র ' + free + 'টি');
+        const stamp = Date.now();
+        const used = new Set();
+        const writes = [];
+        for (let i = 0; i < n; i++) {
+            let nm; do { nm = hxDemoName(i); } while (used.has(nm)); used.add(nm);
+            const rec = {
+                id: 'demo_' + match.id + '_' + stamp + '_' + i,
+                userId: 'demo_' + match.id + '_' + stamp + '_' + i,
+                matchId: match.id,
+                inGameName: nm, teamName: isPro ? 'Team ' + nm : '', iglName: isPro ? nm : '', whatsapp: '', teamLogo: '',
+                group: '', player1: nm, player2: '', player3: '', player4: '', roles: null,
+                type: isPro ? 'Squad' : 'Solo', slots: 1,
+                joinedAt: new Date(stamp + i).toISOString(), entryFee: 0,
+                seriesId: match.seriesId || null, maps: match.maps || null, demo: true
+            };
+            writes.push(rec);
+        }
+        commit(writes, n + ' জন ডেমো জয়েন যোগ হয়েছে ✓');
+    });
+    const clr = ov.querySelector('#hx-dm-clear');
+    if (clr) clr.addEventListener('click', () => commit(demoNow.map(j => ({ id: j.id, del: true })), 'ডেমো জয়েন সরানো হয়েছে'));
+}
+window.adminDemoJoin = adminDemoJoin;
+
 async function adminTogglePlayerList(matchId) {
     if (!currentUser?.isAdmin) return toast('শুধু অ্যাডমিন');
     const match = (CACHE.matches || []).find(m => String(m.id) === String(matchId));
@@ -5326,7 +5433,7 @@ function adminViewPlayers(matchId) {
         if (iglOnly) name += ' (IGL: ' + iglOnly + ')';
         const teamCopyAttr = String(teamOnly).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
         const iglCopyAttr = String(iglOnly).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-        const refunded = j.refunded ? '<span style="color:#e17055;font-size:11px;">REFUNDED</span>' : '';
+        const refunded = (j.refunded ? '<span style="color:#e17055;font-size:11px;">REFUNDED</span>' : '') + (j.demo ? ' <span style="color:#a29bfe;font-size:11px;">DEMO</span>' : '');
         const grp = j.group || '—';
         const groupOpts = groups.map(g =>
             '<option value="' + String(g).replace(/"/g, '&quot;') + '"' +
@@ -7986,8 +8093,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hasBootCache = !!(CACHE.categories && Object.keys(CACHE.categories).length);
 
     // ===== Splash: wait for matches + thumbs so home opens with real counts =====
-    const MAX_SPLASH_MS = 4200;                       // progress-bar pace
-    const HARD_SPLASH_MS = hasBootCache ? 3500 : 8000; // never wait longer than this
+    const MAX_SPLASH_MS = hasBootCache ? 1500 : 4200;                       // progress-bar pace
+    const HARD_SPLASH_MS = hasBootCache ? 2200 : 8000; // never wait longer than this
     const startTime = Date.now();
     _splashPercent = 0;
     updateSplash(5, 'Initializing...');
@@ -8036,6 +8143,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const dbPromise = (async () => {
+        // Cached launch: paint instantly from cache; network refreshes live afterwards
+        if (hasBootCache) {
+            try {
+                const c0 = CACHE.categories || {};
+                const t0 = Object.values(c0).map(c => (c && c.thumb) || '').filter(Boolean);
+                const s0 = (Array.isArray(CACHE.homeSlider) ? CACHE.homeSlider : []).map(s => (s && (s.image || s.img || s.url)) || '').filter(Boolean);
+                await preloadImages([...t0, ...s0], 600);
+            } catch (e) {}
+            thumbsReady = true; dataReady = true;
+            criticalPromise.then(() => { try { renderPlayCategories(); if (typeof renderHomeSlider === 'function') renderHomeSlider(); } catch (e) {} });
+            return;
+        }
         await criticalPromise;
         // Preload thumbs + slider images while still on splash (short: most are browser-cached)
         try {
@@ -8067,7 +8186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Hold near end until matches+thumbs ready (up to max)
             if (!dataReady && ratio > 0.9) ratio = 0.9;
             if (dataReady && thumbsReady) ratio = Math.max(ratio, 0.97);
-            if (dataReady && thumbsReady && elapsed > 600) ratio = 1;
+            if (dataReady && thumbsReady && elapsed > (hasBootCache ? 250 : 600)) ratio = 1;
             if (elapsed >= HARD_SPLASH_MS) ratio = 1;
 
             const eased = 1 - Math.pow(1 - ratio, 1.45);
