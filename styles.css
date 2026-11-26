@@ -4847,3 +4847,6 @@ body.light-theme [style*="color:#5b9dff"], body.light-theme [style*="color:#7eb0
 body.light-theme [style*="color:#ff6b6b"] { color: #d32f2f !important; }
 body.light-theme [style*="color:#a78bfa"] { color: #6d4ae0 !important; }
 body.light-theme .btn-primary, body.light-theme .btn-primary * { text-shadow: none; }
+
+/* notifications: keep line breaks (Room ID / Password / Happy Gaming) */
+.notif-text{white-space:pre-line;}

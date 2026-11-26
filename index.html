@@ -12,7 +12,27 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="stylesheet" href="styles.css">
+    <style id="hx-critical">
+    html,body{background:#070a16;margin:0}
+    #loading-screen{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 80% at 50% 18%,#1a1030 0%,#0a0e22 45%,#05070f 100%);overflow:hidden}
+    #loading-screen .hxs{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;width:100%;padding:0 24px;box-sizing:border-box}
+    #loading-screen .hxs-logo{position:relative;width:104px;height:104px;display:flex;align-items:center;justify-content:center}
+    #loading-screen .hxs-ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#e10600,#1a5cff,#e10600 60%,transparent 62%,transparent);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));animation:hxsSpin 1.1s linear infinite}
+    #loading-screen .hxs-glow{position:absolute;inset:-18px;border-radius:50%;background:radial-gradient(circle,rgba(225,6,0,.35),rgba(26,92,255,.18) 55%,transparent 70%);animation:hxsPulse 1.8s ease-in-out infinite}
+    #loading-screen .hxs-img{position:relative;width:86px;height:86px;border-radius:50%;object-fit:cover;background:#fff}
+    #loading-screen .hxs-title{margin:20px 0 2px;font:800 26px/1.1 Roboto,system-ui,sans-serif;letter-spacing:1px;color:#fff}
+    #loading-screen .hxs-sub{margin:0 0 26px;font:600 11px/1 Roboto,system-ui,sans-serif;letter-spacing:3px;color:#8b93a7;text-transform:uppercase}
+    #loading-screen .hxs-bar{width:min(240px,70%);height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+    #loading-screen .hxs-fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#e10600,#ff5a3c,#1a5cff);box-shadow:0 0 12px rgba(225,6,0,.7);transition:width .25s ease-out;position:relative}
+    #loading-screen .hxs-fill:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-100%);animation:hxsShine 1.2s linear infinite}
+    #loading-screen .hxs-row{margin-top:12px;display:flex;gap:10px;align-items:center;font:600 12px/1 Roboto,system-ui,sans-serif;color:#c5cbe0}
+    #loading-screen .hxs-pct{color:#fff;font-weight:800;min-width:34px;text-align:right}
+    @keyframes hxsSpin{to{transform:rotate(360deg)}}
+    @keyframes hxsPulse{0%,100%{opacity:.55;transform:scale(.95)}50%{opacity:1;transform:scale(1.06)}}
+    @keyframes hxsShine{to{transform:translateX(100%)}}
+    </style>
+    <link rel="preload" as="image" href="logo.png">
+    <link rel="stylesheet" href="styles.css" id="hx-css" media="print" onload="this.media='all';window.__hxCss=1"><noscript><link rel="stylesheet" href="styles.css"></noscript>
     <!-- Instant theme (no dark→light flash) -->
     <script>
     (function () {
@@ -63,8 +83,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body class="dark-theme">
     <!-- Loading Screen -->
@@ -75,20 +95,19 @@
             <span class="orb orb-3"></span>
         </div>
         <div class="splash-particles" id="splash-particles"></div>
-        <div class="loader">
-            <div class="logo-ring">
-                <img src="logo.png" alt="HuntX BD" class="logo-img-loading">
-            </div>
-            <h2 class="splash-title">HuntX BD</h2>
-            <p class="splash-version">2.0</p>
-            <div class="splash-progress-wrap">
-                <div class="splash-status" id="splash-status">Initializing...</div>
-                <div class="splash-bar">
-                    <div class="splash-bar-fill" id="splash-bar-fill"></div>
-                </div>
-            </div>
+        <div class="hxs">
+            <div class="hxs-logo"><div class="hxs-glow"></div><div class="hxs-ring"></div><img class="hxs-img" src="logo.png" alt="HuntX BD" width="86" height="86" fetchpriority="high"></div>
+            <h2 class="hxs-title">HuntX BD</h2>
+            <p class="hxs-sub">Free Fire Tournament</p>
+            <div class="hxs-bar"><div class="hxs-fill" id="splash-bar-fill"></div></div>
+            <div class="hxs-row"><span id="splash-status">Loading...</span><span class="hxs-pct" id="splash-pct">0%</span></div>
         </div>
     </div>
+    <script>
+    /* Runs instantly (before app.js): bar starts moving right away so the user sees it is loading */
+    (function(){var t0=Date.now(),f=document.getElementById('splash-bar-fill'),p=document.getElementById('splash-pct');
+    window.__hxPre=0;function t(){if(window.__hxPreStop)return;var e=(Date.now()-t0)/1000;var v=Math.min(62,Math.round(62*(1-Math.exp(-e/2.2))));window.__hxPre=v;if(f)f.style.width=v+'%';if(p)p.textContent=v+'%';setTimeout(t,120);}t();})();
+    </script>
 
     <!-- App Closed / Maintenance (users only; admin bypass) -->
     <div id="maintenance-screen" class="hidden">
@@ -732,6 +751,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script defer src="app.js"></script>
 </body>
 </html>
