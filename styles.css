@@ -4850,3 +4850,6 @@ body.light-theme .btn-primary, body.light-theme .btn-primary * { text-shadow: no
 
 /* notifications: keep line breaks (Room ID / Password / Happy Gaming) */
 .notif-text{white-space:pre-line;}
+
+/* smoother splash progress */
+#loading-screen .splash-bar-fill{transition:width .25s ease-out;}

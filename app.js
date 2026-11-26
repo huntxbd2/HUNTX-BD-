@@ -8022,11 +8022,7 @@ function updateSplash(percent, message) {
         _splashPercent = percent;
     }
     if (status && message) status.textContent = message;
-    window.__hxPreStop = true;
-    const shown = Math.max(_splashPercent, window.__hxPre || 0);
-    if (bar) bar.style.width = shown + '%';
-    const pc = document.getElementById('splash-pct');
-    if (pc) pc.textContent = Math.round(shown) + '%';
+    if (bar) bar.style.width = _splashPercent + '%';
 }
 
 /** Smoothly creep progress while waiting (feels alive, not stuck) */
@@ -8188,6 +8184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         { p: 100, msg: 'Ready!' }
     ];
     const splashPromise = new Promise(resolve => {
+        let shown = 0; // smoothed progress: glides forward a little at a time
         const tick = () => {
             const elapsed = Date.now() - startTime;
             let ratio = Math.min(1, elapsed / MAX_SPLASH_MS);
@@ -8198,15 +8195,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (elapsed >= HARD_SPLASH_MS) ratio = 1;
 
             const eased = 1 - Math.pow(1 - ratio, 1.45);
-            const pct = Math.round(eased * 100);
+            const target = eased * 100;
+            shown += Math.max(0.12, (target - shown) * 0.07);
+            if (shown > target) shown = target;
+            const pct = Math.round(shown);
             let msg = 'Initializing...';
             for (let i = 0; i < statusSteps.length; i++) {
                 if (pct >= statusSteps[i].p - 4) msg = statusSteps[i].msg;
             }
             if (dataReady && thumbsReady && pct >= 94) msg = 'Ready!';
-            updateSplash(pct, msg);
+            updateSplash(shown, msg);
 
-            if (ratio >= 1) {
+            if (ratio >= 1 && shown >= 99.5) {
                 updateSplash(100, 'Ready!');
                 resolve();
             } else {
@@ -8230,8 +8230,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateNavBalance();
     } catch (e) {}
 
-    // make sure the (non-blocking) stylesheet is applied before the splash goes away
-    for (let i = 0; i < 60 && !window.__hxCss; i++) await new Promise(r => setTimeout(r, 50));
     await new Promise(r => setTimeout(r, 40));
     hideSplash();
 
