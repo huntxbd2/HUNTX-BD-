@@ -9437,12 +9437,11 @@ window.adminOpenPlayerPrizeFromResult = adminOpenPlayerPrizeFromResult;
         document.addEventListener('pointerdown', h, true);
     }
 
-    // Room push is only for players who joined that match (admin always sees it)
+    // Room push is only for players who joined that match (nobody else, admin included)
     var tTries = 0;
     function targetOk() {
         if (!state.matchId) return true;
         if (typeof currentUser === 'undefined' || !currentUser) return false;
-        if (currentUser.isAdmin) return true;
         if (typeof CACHE === 'undefined' || !CACHE._joinsLive) return false;
         try { return !!isUserJoined(state.matchId); } catch (e) { return false; }
     }
